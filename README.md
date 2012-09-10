@@ -1,5 +1,6 @@
 BurningPig
 ==========
+![burningpig](http://joedoyle.us/burningpig.png)
 
 ###A Minecraft 1.3.2 Server in Node.js
 
