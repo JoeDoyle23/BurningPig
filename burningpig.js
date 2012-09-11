@@ -7,7 +7,7 @@
     BinaryWriter = require('./binaryReader').BinaryWriter,
     PacketBuilder = require('./packetBuilder');
 
-console.log('Starting the Burning Pig.');
+console.log('Starting the BurningPig.');
     
 var players = [];
 var packetBuilder = new PacketBuilder();

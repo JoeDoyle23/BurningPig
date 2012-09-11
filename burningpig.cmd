@@ -1,0 +1,1 @@
+nodemon burningpig -watch ./

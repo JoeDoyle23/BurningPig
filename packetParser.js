@@ -64,6 +64,10 @@ PacketParser.prototype.error = function () {
     this.emit('error');
 };
 
+PacketParser.prototype.destroy = function () {
+    this.emit('destroy');
+};
+
 PacketParser.prototype.partialData = new Buffer(0);
 
 module.exports = PacketParser;
