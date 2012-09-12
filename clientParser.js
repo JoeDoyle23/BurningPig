@@ -1,8 +1,9 @@
-﻿var BinaryReader = require('./binaryReader').BinaryReader;
-var util = require('util');
+﻿var BinaryReader = require('./beConverters').BinaryReader,
+    util = require('util');
 
-var clientParsers = function () {
+var clientParser = function () {
     var self = this;
+
     var parsers = [];
 
     parsers[0x00] = function (binaryReader) {
@@ -363,4 +364,4 @@ var clientParsers = function () {
     };
 };
 
-module.exports = new clientParsers();
+module.exports = new clientParser();

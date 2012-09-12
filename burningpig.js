@@ -4,8 +4,9 @@
     crypto = require('crypto'),
     zlib = require('zlib'),
     PacketParser = require('./packetParser'),
-    BinaryWriter = require('./binaryReader').BinaryWriter,
-    PacketBuilder = require('./packetBuilder');
+    BinaryWriter = require('./beConverters').BinaryWriter,
+    PacketBuilder = require('./packetBuilder'),
+    AnvilChunk = require('./anvilChunk');
 
 console.log('Starting the BurningPig.');
     
@@ -14,50 +15,37 @@ var packetBuilder = new PacketBuilder();
 
 var packetHandler = [];
 
-var chunk = new Buffer(4096);
-var meta = new Buffer(2048);
-var light = new Buffer(4096);
-
-chunk.fill(3);
-meta.fill(0);
-light.fill(0xff);
-
-var uncompress_chunk = Buffer.concat([chunk, meta, light], 10240);
-var total_chunk = new Buffer(0);
-var compressed_chunk = new Buffer(0);
-
-var biome = new Buffer(256);
-biome.fill(1);
-
-for(var i=0;i<81;i++) {
-   total_chunk = Buffer.concat([total_chunk, uncompress_chunk, biome], total_chunk.length + 10240 + 256); 
+var anvilChunks = [];
+for (var x = 0; x < 10; x++) {
+    for (var z = 0; z < 10; z++) {
+        var chunk = new AnvilChunk(x, z);
+        chunk.generateTestColumn();
+        anvilChunks.push(chunk);
+    }
 }
 
-zlib.deflate(total_chunk, function (err, res) {
-    compressed_chunk = res;
-});
+var generateMap = function (callback) {
+    var total_chunk = new Buffer(0);
+    var columnmetadata = [];
 
-var generateMap = function() {
-  var data = {
-      chunkCount: 81,
-      chunkDataLength: compressed_chunk.length,
-      chunkData: compressed_chunk,
-      metadata: []
-  };
-    for(var x=0;x<9;x++) {
-        for(var z=0;z<9;z++) {
+    for (var i = 0; i < 100; i++) {
+        var columndata = anvilChunks[i].getTransmissionBuffer();
+        total_chunk = Buffer.concat([total_chunk, columndata], total_chunk.length + columndata.length);
+        columnmetadata[i] = anvilChunks[i].metadata;
+    }
 
-        data.metadata.push({
-                      chunkX: x,
-                      chunkZ: z,
-                      primaryBitmap: 8,
-                      addBitmap: 0
-                      });
-        }
-    }    
+    zlib.deflate(total_chunk, function (err, res) {
+        var compressed_chunk = res;
+        var data = {
+            chunkCount: 100,
+            chunkDataLength: compressed_chunk.length,
+            chunkData: compressed_chunk,
+            metadata: columnmetadata
+        };
 
-  return data;
-}
+        callback(data);
+    });
+};
 
 packetHandler[0x02] = function(data, stream) {
   console.log('Got handshake from user: ' + data.username);
@@ -70,15 +58,13 @@ packetHandler[0x02] = function(data, stream) {
     maxPlayers: 8
   };
 
-  var mapdata = generateMap();
   var packet = packetBuilder.build(0x01, data);
-  var map = packetBuilder.build(0x38, mapdata);
 
   var posData = {
     x: 72,
-    y: 66,
+    y: 200,
     z: 72,
-    stance: 67.62,
+    stance: 201.62,
     yaw: 0,
     pitch: 0,
     onGround: true
@@ -87,21 +73,25 @@ packetHandler[0x02] = function(data, stream) {
   var pos = packetBuilder.build(0x0D, posData);
   
   //stream.write(Buffer.concat([packet, map, pos], packet.length+map.length+pos.length));  
-  stream.write(packet);  
-  stream.write(map);  
-  stream.write(pos);  
+  stream.write(packet);
+
+  var mapdata = generateMap(function (mapdata) {
+      var map = packetBuilder.build(0x38, mapdata);
+      stream.write(map);
+      stream.write(pos);
+  });
 };
 
 packetHandler[0x0D] = function(data, stream) {
-  console.log("Got client position info data: " + util.inspect(data, true, null, true));
+  //console.log("Got client position info data: " + util.inspect(data, true, null, true));
 };
 
 packetHandler[0x0B] = function(data, stream) {
-  console.log("Got client position info data: " + util.inspect(data, true, null, true));
+  //console.log("Got client position info data: " + util.inspect(data, true, null, true));
 };
 
 packetHandler[0xCC] = function(data, stream) {
-  console.log("Got client info data: " + util.inspect(data, true, null, true));
+  //console.log("Got client info data: " + util.inspect(data, true, null, true));
 };
 
 packetHandler[0xFE] = function(data, stream) {

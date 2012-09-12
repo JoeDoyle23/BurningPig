@@ -1,4 +1,6 @@
-﻿var util = require('util');
+﻿//Helpers to parse & write the buffers.  Java uses big endian for its numbers.
+
+var util = require('util');
 var int64 = require('node-int64');
 
 var BinaryWriter = function(buffer, start) {
@@ -47,6 +49,11 @@ var BinaryWriter = function(buffer, start) {
       cursor.pos += 2;
   };
 
+  self.writeUShort = function (data) {
+      buffer.writeUInt16BE(data, cursor.pos);
+      cursor.pos += 2;
+  };
+
   self.writeInt = function (data) {
       buffer.writeInt32BE(data, cursor.pos);
       cursor.pos += 4;
@@ -75,12 +82,9 @@ var BinaryWriter = function(buffer, start) {
           return;
       }
 
-      buffer.writeInt16BE(data.itemCount , cursor.pos);
-      cursor.pos += 2;
-      buffer.readInt16BE(data.itemDamage, cursor.pos);
-      cursor.pos += 2;
-      buffer.writeInt16BE(data.metaData.length, cursor.pos);
-      cursor.pos += 2;
+      self.writeShort(data.itemCount);
+      self.writeShort(data.itemDamage);
+      self.writeShort(data.metaData.length);
 
       if (data.metaData.length === -1) {
           return data;
@@ -192,12 +196,9 @@ var BinaryReader = function (buffer, start) {
         }
 
         needs(6);
-        data.itemCount = buffer.readInt16BE(cursor.pos);
-        cursor.pos += 2;
-        data.itemDamage = buffer.readInt16BE(cursor.pos);
-        cursor.pos += 2;
-        var metaDataLength = buffer.readInt16BE(cursor.pos);
-        cursor.pos += 2;
+        data.itemCount = self.readShort();
+        data.itemDamage = self.readShort();
+        var metaDataLength = self.readShort();
 
         if(metaDataLength===-1) {
             return data;

@@ -1,4 +1,4 @@
-﻿var BinaryWriter = require('./binaryReader').BinaryWriter;
+﻿var BinaryWriter = require('./beConverters').BinaryWriter;
 
 var PacketBuilder = function() {
   var self = this;
@@ -478,8 +478,8 @@ var PacketBuilder = function() {
       for (var i = 0; i < data.metadata.length; i++) {
           binaryWriter.writeInt(data.metadata[i].chunkX);
           binaryWriter.writeInt(data.metadata[i].chunkZ);
-          binaryWriter.writeShort(data.metadata[i].primaryBitmap);
-          binaryWriter.writeShort(data.metadata[i].addBitmap);
+          binaryWriter.writeUShort(data.metadata[i].primaryBitmap);
+          binaryWriter.writeUShort(data.metadata[i].addBitmap);
       }
 
       return packet;

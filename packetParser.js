@@ -1,10 +1,9 @@
 ﻿var util = require('util'),
     Stream = require('stream').Stream,
-    clientParser = require('./clientParsers');
+    clientParser = require('./clientParser');
 
 function PacketParser() {
-    var self = this;
-    Stream.call(self);
+    Stream.call(this);
     this.writable = true;
     this.readable = true;    
 };
@@ -13,16 +12,10 @@ util.inherits(PacketParser, Stream);
 
 PacketParser.prototype.write = function (data, encoding) {
 
-    //console.log('Got Buffer: ' + util.inspect(data));
     var allData = Buffer.concat([this.partialData, data], this.partialData.length + data.length);
-    var moreData = false;
-    
-    //console.log('data len: ' + data.length + ' allData len: ' + allData.length);
 
     do {
         try {
-            //console.log("All Packet data: " + util.inspect(allData, true, null, true));
-
             var packet = clientParser.parse(allData);
 
             if (packet.error) {
@@ -30,7 +23,7 @@ PacketParser.prototype.write = function (data, encoding) {
                 //throw { message: packet.err };
             }
 
-            console.log("Packet data: " + util.inspect(packet, true, null, true));
+            //console.log("Packet data: " + util.inspect(packet, true, null, true));
             this.emit('data', packet.data);
 
             if (allData.length === packet.bufferUsed) {
@@ -39,8 +32,6 @@ PacketParser.prototype.write = function (data, encoding) {
             } else {
                 allData = allData.slice(packet.bufferUsed);
             }
-
-            moreData = allData.length > 0;
 
         } catch (err) {
             if (err.message == "oob") {
@@ -52,8 +43,7 @@ PacketParser.prototype.write = function (data, encoding) {
                 throw err;
             }
         }
-        console.log(moreData);
-    } while (moreData)
+    } while (allData.length > 0)
 };
 
 PacketParser.prototype.end = function () {
