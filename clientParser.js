@@ -7,7 +7,7 @@ var clientParser = function () {
     var parsers = [];
 
     parsers[0x00] = function (binaryReader) {
-        console.log('Got keepalive');
+        //console.log('Got keepalive');
 
         var data = {
             type: binaryReader.readByte(),
@@ -19,7 +19,7 @@ var clientParser = function () {
     };
 
     parsers[0x02] = function (binaryReader) {
-        console.log('Got handshake');
+        //console.log('Got handshake');
 
         var data = {
             type: binaryReader.readByte(),
@@ -33,7 +33,7 @@ var clientParser = function () {
     };
 
     parsers[0x03] = function (binaryReader) {
-        console.log('Got chat message');
+        //console.log('Got chat message');
 
         var data = {
             type: binaryReader.readByte(),
@@ -44,7 +44,7 @@ var clientParser = function () {
     };
 
     parsers[0x07] = function (binaryReader) {
-        console.log('Got use entity');
+        //console.log('Got use entity');
 
         var data = {
             type: binaryReader.readByte(),
@@ -57,7 +57,7 @@ var clientParser = function () {
     };
 
     parsers[0x0A] = function (binaryReader) {
-        console.log('Got Player Status');
+        //console.log('Got Player Status');
 
         var data = {
             type: binaryReader.readByte(),
@@ -68,7 +68,7 @@ var clientParser = function () {
     };
 
     parsers[0x0B] = function (binaryReader) {
-        console.log('Got Player Position');
+        //console.log('Got Player Position');
 
         var data = {
             type: binaryReader.readByte(),
@@ -83,7 +83,7 @@ var clientParser = function () {
     };
 
     parsers[0x0C] = function (binaryReader) {
-        console.log('Got Player Look');
+        //console.log('Got Player Look');
 
         var data = {
             type: binaryReader.readByte(),
@@ -96,9 +96,9 @@ var clientParser = function () {
     };
 
     parsers[0x0D] = function (binaryReader) {
-        console.log('Got Player Position & Look');
+        //console.log('Got Player Position & Look');
 
-        console.log('PL packet: ' + util.inspect(binaryReader.getBuffer(), true, null, true));
+        //console.log('PL packet: ' + util.inspect(binaryReader.getBuffer(), true, null, true));
         var data = {
             type: binaryReader.readByte(),
             x: binaryReader.readDouble(),
@@ -114,7 +114,7 @@ var clientParser = function () {
     };
 
     parsers[0x0E] = function (binaryReader) {
-        console.log('Got Player Digging');
+        //console.log('Got Player Digging');
 
         var data = {
             type: binaryReader.readByte(),
@@ -129,7 +129,7 @@ var clientParser = function () {
     };
 
     parsers[0x0F] = function (binaryReader) {
-        console.log('Got Player Block Placement');
+        //console.log('Got Player Block Placement');
 
         var data = {
             type: binaryReader.readByte(),
@@ -147,7 +147,7 @@ var clientParser = function () {
     };
 
     parsers[0x10] = function (binaryReader) {
-        console.log('Got Player Held Item Changed');
+        //console.log('Got Player Held Item Changed');
 
         var data = {
             type: binaryReader.readByte(),
@@ -158,7 +158,7 @@ var clientParser = function () {
     };
 
     parsers[0x12] = function (binaryReader) {
-        console.log('Got Animation');
+        //console.log('Got Animation');
 
         var data = {
             type: binaryReader.readByte(),
@@ -170,7 +170,7 @@ var clientParser = function () {
     };
 
     parsers[0x13] = function (binaryReader) {
-        console.log('Got Entity Action');
+        //console.log('Got Entity Action');
 
         var data = {
             type: binaryReader.readByte(),
@@ -182,7 +182,7 @@ var clientParser = function () {
     };
 
     parsers[0x65] = function (binaryReader) {
-        console.log('Got Close Window');
+        //console.log('Got Close Window');
 
         var data = {
             type: binaryReader.readByte(),
@@ -193,7 +193,7 @@ var clientParser = function () {
     };
 
     parsers[0x66] = function (binaryReader) {
-        console.log('Got Click Window');
+        //console.log('Got Click Window');
 
         var data = {
             type: binaryReader.readByte(),

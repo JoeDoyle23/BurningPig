@@ -402,11 +402,11 @@ var PacketBuilder = function() {
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x33);
-      binaryWriter.writeInt(data.X);
-      binaryWriter.writeInt(data.Z);
+      binaryWriter.writeInt(data.x);
+      binaryWriter.writeInt(data.z);
       binaryWriter.writeBool(data.continuous);
-      binaryWriter.writeShort(data.primaryBitmap);
-      binaryWriter.writeShort(data.addBitmap);
+      binaryWriter.writeUShort(data.primaryBitmap);
+      binaryWriter.writeUShort(data.addBitmap);
       binaryWriter.writeInt(data.compressedSize);
       binaryWriter.writeArray(data.compressedData);
       return packet;
@@ -468,12 +468,12 @@ var PacketBuilder = function() {
   };
 
   builders[0x38] = function (data) {
-      var packet = new Buffer(7 + data.chunkDataLength + (12*data.chunkCount));
+      var packet = new Buffer(7 + data.chunkData.length + (12*data.metadata.length));
       var binaryWriter = new BinaryWriter(packet);
-
+  
       binaryWriter.writeByte(0x38);
       binaryWriter.writeShort(data.chunkCount);
-      binaryWriter.writeInt(data.chunkDataLength);
+      binaryWriter.writeInt(data.chunkData.length);
       binaryWriter.writeArray(data.chunkData);
       for (var i = 0; i < data.metadata.length; i++) {
           binaryWriter.writeInt(data.metadata[i].chunkX);

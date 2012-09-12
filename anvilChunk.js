@@ -10,45 +10,52 @@ function Chunk(y) {
     //Right now chunks will be all dirt
     this.blocks.fill(3);
     this.metadata.fill(0);
-    this.light.fill(0xff);
+    this.light.fill(0);
     this.skylight.fill(0xff);
-
-    this.getTransmissionBuffer = function () {
-        return Buffer.concat([this.blocks, this.metadata, this.light, this.skylight], 10240);
-    }
 }
-
 
 function AnvilChunk(x, z) {
     this.x = x;
     this.z = z
-    this.biome = new Buffer(256);
-    this.biome.fill(1);
 
     //chunks in Y order, 0-256. No chunk entry means all air
     this.chunks = [];
 
-    this.metadata = {
-        chunkX: x,
-        chunkZ: z,
-        primaryBitmap: 0xFFFF,
-        addBitmap: 0
-    };
+    this.biomes = new Buffer(256);
+    this.biomes.fill(1);
 
+    this.metadata = {
+      chunkX: this.x,
+      chunkZ: this.z,
+      primaryBitmap: 0,
+      addBitmap: 0
+    }
+    
     this.generateTestColumn = function () {
         for (var i = 0; i < 4; i++) {
-            var chunk = new Chunk(i);
-            this.chunks[i] = chunk;
+            this.chunks[i] = new Chunk(i);
         }
+        
+        this.metadata.primaryBitmap = 0x000F;
     };
 
     this.getTransmissionBuffer = function () {
-        var chunkArray = [];
-        for (var i = 0; i < 4; i++) {
-            chunkArray.push(this.chunks[i].getTransmissionBuffer());
+        var b = [], m = [], l = [], s = [];
+        var totalLength=0;
+        
+        for (var i = 0; i < this.chunks.length; i++) {
+            b.push(this.chunks[i].blocks);
+            totalLength +=this.chunks[i].blocks.length;
+            m.push(this.chunks[i].metadata);
+            totalLength +=this.chunks[i].metadata.length;
+            l.push(this.chunks[i].light);
+            totalLength +=this.chunks[i].light.length;
+            s.push(this.chunks[i].skylight);
+            totalLength +=this.chunks[i].skylight.length;
         }
-        chunkArray.push(this.biome);
-        return Buffer.concat(chunkArray, (10240 * 4) + 256);
+        var all = b.concat(m, l, s);
+        all.push(this.biomes);
+        return Buffer.concat(all, totalLength+this.biomes.length);
     };
 }
 

@@ -15,25 +15,34 @@ var packetBuilder = new PacketBuilder();
 
 var packetHandler = [];
 
-var anvilChunks = [];
+var anvil = {
+  chunks: []
+};
+
 for (var x = 0; x < 10; x++) {
     for (var z = 0; z < 10; z++) {
         var chunk = new AnvilChunk(x, z);
         chunk.generateTestColumn();
-        anvilChunks.push(chunk);
+        anvil.chunks.push(chunk);
     }
 }
 
 var generateMap = function (callback) {
+
     var total_chunk = new Buffer(0);
     var columnmetadata = [];
-
-    for (var i = 0; i < 100; i++) {
-        var columndata = anvilChunks[i].getTransmissionBuffer();
-        total_chunk = Buffer.concat([total_chunk, columndata], total_chunk.length + columndata.length);
-        columnmetadata[i] = anvilChunks[i].metadata;
+    var columndata = [];
+    var len = 0;
+    
+     for (var i = 0; i < 100; i++) {
+        var data = anvil.chunks[i].getTransmissionBuffer();
+        columndata.push(data);
+        len+=data.length;
+        columnmetadata.push(anvil.chunks[i].metadata);
     }
-
+    
+    total_chunk = Buffer.concat(columndata, len);
+ 
     zlib.deflate(total_chunk, function (err, res) {
         var compressed_chunk = res;
         var data = {
@@ -47,8 +56,19 @@ var generateMap = function (callback) {
     });
 };
 
-packetHandler[0x02] = function(data, stream) {
-  console.log('Got handshake from user: ' + data.username);
+packetHandler[0x00] = function(data, client) {
+  if(client.closed)
+    return;
+  
+  if(client.lastKeepAlive != data.keepAliveId) {
+    console.log('Client sent bad KeepAlive: should have been: %d - was: %d', client.lastKeepAlive, data.keepAliveId);
+    var kick = packetBuilder.build(0xFF, { serverStatus: 'Bad response to Keep Alive!' });
+    client.network.write(kick);
+    client.network.end();
+  }
+}
+packetHandler[0x02] = function(data, client) {
+  //console.log('Got handshake from user: ' + data.username);
   
   var data = {
     entityId: 1,
@@ -61,52 +81,61 @@ packetHandler[0x02] = function(data, stream) {
   var packet = packetBuilder.build(0x01, data);
 
   var posData = {
-    x: 72,
-    y: 200,
-    z: 72,
-    stance: 201.62,
+    x: 5,
+    y: 70,
+    z: 5,
+    stance: 71.62,
     yaw: 0,
     pitch: 0,
     onGround: true
   };
   
   var pos = packetBuilder.build(0x0D, posData);
-  
-  //stream.write(Buffer.concat([packet, map, pos], packet.length+map.length+pos.length));  
-  stream.write(packet);
+  client.network.write(packet);
 
   var mapdata = generateMap(function (mapdata) {
       var map = packetBuilder.build(0x38, mapdata);
-      stream.write(map);
-      stream.write(pos);
+      client.network.write(map);
+      client.network.write(pos);
   });
 };
 
-packetHandler[0x0D] = function(data, stream) {
+packetHandler[0x0B] = function(data, client) {
   //console.log("Got client position info data: " + util.inspect(data, true, null, true));
 };
 
-packetHandler[0x0B] = function(data, stream) {
+packetHandler[0x0D] = function(data, client) {
   //console.log("Got client position info data: " + util.inspect(data, true, null, true));
 };
 
-packetHandler[0xCC] = function(data, stream) {
+packetHandler[0x0E] = function(data, client) {
+  
+  if(data.status===0) {
+    console.log('Player started digging');
+  }
+  if(data.status===2) {
+    console.log('Player stopped digging');
+  }
+};
+
+
+packetHandler[0xCC] = function(data, client) {
   //console.log("Got client info data: " + util.inspect(data, true, null, true));
 };
 
-packetHandler[0xFE] = function(data, stream) {
+packetHandler[0xFE] = function(data, client) {
   var serverStatus = 'Burning Pig Server!§0§8';
   
   var packet = packetBuilder.build(0xFF, {serverStatus: serverStatus});
 
-  console.log("Sending packet: " + util.inspect(packet, true, null, true));
-  stream.write(packet);
-  stream.end();
+  //console.log("Sending packet: " + util.inspect(packet, true, null, true));
+  client.network.write(packet);
+  client.network.end();
 };
 
 var server = net.createServer(function (stream) {
     var parser = new PacketParser();
-    var client = { network: stream};
+    var client = { network: stream };
     players.push(client);
 
 	stream.on('connect', function () {
@@ -136,14 +165,17 @@ var server = net.createServer(function (stream) {
     var ka = {
         keepAliveId: crypto.randomBytes(4).readInt32BE(0)
         };
+    client.lastKeepAlive = ka.keepAliveId;
     var packet = packetBuilder.build(0x00, ka);
-    stream.write(packet);
+    if(!client.closed) {
+      stream.write(packet);    
+    }
   }, 1000);
   
 	parser.on('data', function (data) {
 	    //console.log('Got parsed data:'+ util.inspect(data));
 	    if(packetHandler.hasOwnProperty(data.type)) {
-          packetHandler[data.type](data, stream);
+          packetHandler[data.type](data, client);
       } else {
         console.log("Got unhandled data: " + util.inspect(data, true, null, true));
       }      
