@@ -2,10 +2,11 @@
     Stream = require('stream').Stream,
     clientParser = require('./clientParser');
 
-function PacketParser() {
+function PacketParser(client) {
     Stream.call(this);
     this.writable = true;
-    this.readable = true;    
+    this.readable = true;
+    this.client = client;
 };
 
 util.inherits(PacketParser, Stream);
@@ -24,7 +25,7 @@ PacketParser.prototype.write = function (data, encoding) {
             }
 
             //console.log("Packet data: " + util.inspect(packet, true, null, true));
-            this.emit('data', packet.data);
+            this.emit('data', { data: packet.data, client: this.client });
 
             if (allData.length === packet.bufferUsed) {
                 this.partialData = new Buffer(0);
@@ -47,15 +48,15 @@ PacketParser.prototype.write = function (data, encoding) {
 };
 
 PacketParser.prototype.end = function () {
-    this.emit('end');
+    this.emit('data', { data: 'end', client: this.client });
 };
 
-PacketParser.prototype.error = function () {
-    this.emit('error');
+PacketParser.prototype.error = function (exception) {
+    this.emit('data', { data: 'exception', client: this.client, exception: exception });
 };
 
 PacketParser.prototype.destroy = function () {
-    this.emit('destroy');
+    this.emit('data', { data: 'destroy', client: this.client });
 };
 
 PacketParser.prototype.partialData = new Buffer(0);

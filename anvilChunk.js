@@ -1,6 +1,4 @@
-var zlib = require('zlib');
-
-function Chunk(y) {
+﻿function Chunk(y) {
     this.y = y;
     this.blocks = new Buffer(4096);
     this.metadata = new Buffer(2048);
