@@ -6,39 +6,22 @@
     BinaryWriter = require('./beConverters').BinaryWriter,
     World = require('./world');
 
-console.log('Starting the BurningPig.');
+console.log('Lighting up the BurningPig!');
     
 var world = new World();
+world.loadSettings();
 
 var server = net.createServer(function (stream) {
     var client = { network: stream };
     var parser = new PacketParser(client);
-    world.players.push(client);
 
 	stream.on('connect', function () {
         console.log('Got connection!');
 	});
 
 	stream.pipe(parser).pipe(world, { end: false });
-
-	//parser.on('end', function () {
-    //    console.log('Connection closed!');
-    //    client.closed = true;
-	//	stream.end();
-	//});
-
-	//parser.on('error', function () {
-    //    console.log('Connection closed due to error!');
-    //    client.closed = true;
-	//	stream.end();
-	//});
-  
-	//parser.on('data', function (data) {
-	    //console.log('Got parsed data:'+ util.inspect(data));
-	//});	
 });
 
-var listenPort = 25565;
-server.listen(listenPort);
+server.listen(world.settings.listenPort);
 
-console.log('Server listening on port ' + listenPort + '.');
+console.log('Server listening on port ' + world.settings.listenPort + '.');

@@ -1,10 +1,10 @@
-﻿var PacketBuilder = require('./packetBuilder');
-var util = require('util');
+﻿var util = require('util');
 var crypto = require('crypto');
+var PacketBuilder = require('./packetBuilder');
+var Player = require('./player');
 
 function PacketHandler(world) {
 
-    console.log('the world: ' + world);
     var packetHandler = [];
     var packetBuilder = new PacketBuilder();
 
@@ -12,7 +12,7 @@ function PacketHandler(world) {
         if (client.closed)
             return;
 
-        if (client.lastKeepAlive != data.keepAliveId) {
+        if (world.lastKeepAlive != data.keepAliveId) {
             console.log('Id: %d - Client sent bad KeepAlive: should have been: %d - was: %d', client.id, client.lastKeepAlive, data.keepAliveId);
             var kick = packetBuilder.build(0xFF, { serverStatus: 'Bad response to Keep Alive!' });
             client.network.write(kick);
@@ -23,11 +23,24 @@ function PacketHandler(world) {
     packetHandler[0x02] = function (data, client) {
         //console.log('Got handshake from user: ' + data.username);
 
-        client.playername = data.username;
-        client.id = crypto.randomBytes(4).readInt32BE(0);
-        console.log('New Player: %d', client.id);
+        if (data.protocol !== 39) {
+            console.log("The client sent a protocol id we don't support: %d", data.protocol);
+            var kick = packetBuilder.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.3.2 to use this server!' });
+            client.network.write(kick);
+            client.network.end();
+            return;
+        }
 
-        var data = {
+        client.id = crypto.randomBytes(4).readUInt32BE(0);
+        client.player = new Player(client);
+        client.player.name = data.username;
+
+        console.log('New Player: %d', client.id);
+        console.log('World Status: Players: %d', world.players.length);
+
+        world.players.push(client);
+
+        var login = {
             entityId: 1,
             gameMode: 0,
             dimension: 0,
@@ -35,13 +48,13 @@ function PacketHandler(world) {
             maxPlayers: 8
         };
 
-        var packet = packetBuilder.build(0x01, data);
+        var packet = packetBuilder.build(0x01, login);
 
         var posData = {
-            x: 5,
-            y: 70,
-            z: 5,
-            stance: 71.62,
+            x: 0,
+            y: 64.5,
+            z: 0,
+            stance: 66.12,
             yaw: 0,
             pitch: 0,
             onGround: true
@@ -50,21 +63,29 @@ function PacketHandler(world) {
         var pos = packetBuilder.build(0x0D, posData);
         client.network.write(packet);
 
+        var welcomeChat = packetBuilder.build(0x03, { message: data.username + ' (' + client.id + ') has joined the world!' });
+        world.sendToAllPlayers(welcomeChat);
+
         var mapdata = world.terrain.generateMap(function (mapdata) {
             var map = packetBuilder.build(0x38, mapdata);
             client.network.write(map);
             client.network.write(pos);
-
-            world.startKeepAlives(client);
         });
     };
 
+    packetHandler[0x03] = function (data, client) {
+        if (data.message.length > 100)
+            data.message = data.message.slice(0, 100);
+        var chat = packetBuilder.build(0x03, { message: client.player.name + ': ' + data.message });
+        world.sendToAllPlayers(chat);
+    };
+
     packetHandler[0x0B] = function (data, client) {
-        //console.log("Got client position info data: " + util.inspect(data, true, null, true));
+        client.player.updatePosition(data);
     };
 
     packetHandler[0x0D] = function (data, client) {
-        //console.log("Got client position info data: " + util.inspect(data, true, null, true));
+        client.player.updatePosition(data);
     };
 
     packetHandler[0x0E] = function (data, client) {
@@ -77,17 +98,14 @@ function PacketHandler(world) {
         }
     };
 
-
     packetHandler[0xCC] = function (data, client) {
         //console.log("Got client info data: " + util.inspect(data, true, null, true));
     };
 
     packetHandler[0xFE] = function (data, client) {
-        var serverStatus = 'Burning Pig Server!§0§8';
-
+        var serverStatus = world.settings.serverName + '§' + world.players.length + '§' + world.settings.maxPlayers;
         var packet = packetBuilder.build(0xFF, { serverStatus: serverStatus });
 
-        //console.log("Sending packet: " + util.inspect(packet, true, null, true));
         client.network.write(packet);
         client.network.end();
     };

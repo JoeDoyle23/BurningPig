@@ -9,8 +9,8 @@ function Terrain() {
     };
 
     //Test data for now
-    for (var x = 0; x < 10; x++) {
-        for (var z = 0; z < 10; z++) {
+    for (var x = -5; x < 5; x++) {
+        for (var z = -5; z < 5; z++) {
             var chunk = new AnvilChunk(x, z);
             chunk.generateTestColumn();
             anvil.chunks.push(chunk);
