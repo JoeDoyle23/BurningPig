@@ -11,7 +11,6 @@ function Player(clientObject) {
     this.pitch = 0;
     this.onGround = true;
     this.rawping = [];
-
 };
 
 Player.prototype.getPing = function () {

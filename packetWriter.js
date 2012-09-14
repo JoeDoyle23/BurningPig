@@ -1,6 +1,6 @@
 ﻿var BinaryWriter = require('./beConverters').BinaryWriter;
 
-var PacketBuilder = function() {
+var PacketWriter = function() {
   var self = this;
   
   var builders = [];
@@ -675,4 +675,4 @@ var PacketBuilder = function() {
   };
 };
 
-module.exports = PacketBuilder;
+module.exports = PacketWriter;

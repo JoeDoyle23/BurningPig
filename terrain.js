@@ -4,7 +4,7 @@ var AnvilChunk = require('./anvilChunk');
 function Terrain() {
     var self = this;
 
-    var anvil = {
+    this.anvil = {
         chunks: []
     };
 
@@ -13,43 +13,38 @@ function Terrain() {
         for (var z = -5; z < 5; z++) {
             var chunk = new AnvilChunk(x, z);
             chunk.generateTestColumn();
-            anvil.chunks.push(chunk);
+            this.anvil.chunks.push(chunk);
         }
     }
 
     self.compressedChunkData = {};
+    self.generateMap();    
+};
 
-    this.generateMap = function (callback) {
+Terrain.prototype.generateMap = function () {
+    var self = this;
+    var total_chunk = new Buffer(0);
+    var columnmetadata = [];
+    var columndata = [];
+    var len = 0;
 
-        if (self.compressedChunkData.chunkCount) {
-            callback(self.compressedChunkData);
-        }
+    for (var i = 0; i < 100; i++) {
+        var data = this.anvil.chunks[i].getTransmissionBuffer();
+        columndata.push(data);
+        len += data.length;
+        columnmetadata.push(this.anvil.chunks[i].metadata);
+    }
 
-        var total_chunk = new Buffer(0);
-        var columnmetadata = [];
-        var columndata = [];
-        var len = 0;
+    total_chunk = Buffer.concat(columndata, len);
 
-        for (var i = 0; i < 100; i++) {
-            var data = anvil.chunks[i].getTransmissionBuffer();
-            columndata.push(data);
-            len += data.length;
-            columnmetadata.push(anvil.chunks[i].metadata);
-        }
-
-        total_chunk = Buffer.concat(columndata, len);
-
-        zlib.deflate(total_chunk, function (err, compressed_chunk) {
-            self.compressedChunkData = {
-                chunkCount: 100,
-                chunkDataLength: compressed_chunk.length,
-                chunkData: compressed_chunk,
-                metadata: columnmetadata
-            };
-
-            callback(self.compressedChunkData);
-        });
-    };
+    zlib.deflate(total_chunk, function (err, compressed_chunk) {
+        self.compressedChunkData = {
+            chunkCount: 100,
+            chunkDataLength: compressed_chunk.length,
+            chunkData: compressed_chunk,
+            metadata: columnmetadata
+        };
+    });
 };
 
 module.exports = Terrain;

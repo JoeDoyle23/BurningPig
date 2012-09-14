@@ -1,9 +1,10 @@
 ﻿var util = require('util');
 var Stream = require('stream').Stream;
+var colors = require('colors');
 var crypto = require('crypto');
 var Terrain = require('./terrain');
 var PacketHandler = require('./packetHandler');
-var PacketBuilder = require('./packetBuilder');
+var PacketWriter = require('./packetWriter');
 var Player = require('./player');
 
 function World() {
@@ -16,14 +17,17 @@ function World() {
     this.players = [];
     this.terrain = new Terrain();
     this.packetHandler = new PacketHandler(self);
-    this.packetBuilder = new PacketBuilder();
+    this.packetWriter = new PacketWriter();
     this.entities = [];
     this.nextEntityId = 1;
 
     this.settings = {
         serverName: 'BurningPig Dev Server!',
         listenPort: 25565,
-        maxPlayers: 8
+        maxPlayers: 8,
+        gameMode: 0,
+        dimension: 0,
+        difficulty: 1
     };
 
     this.startKeepAlives();
@@ -47,7 +51,7 @@ World.prototype.startKeepAlives = function () {
             client.player.pingTimer = process.hrtime();
         });
 
-        var keepAlivePacket = self.packetBuilder.build(0x00, ka);
+        var keepAlivePacket = self.packetWriter.build(0x00, ka);
         self.sendToAllPlayers(keepAlivePacket);
 
     }, 1000);
@@ -65,12 +69,12 @@ World.prototype.startTimeAndClients = function () {
         self.worldTime.writeUInt32BE(timeHigh, 0, 4);
         self.worldTime.writeUInt32BE(timeLow, 4, 4);
 
-        var time = self.packetBuilder.build(0x04, { time: self.worldTime });
+        var time = self.packetWriter.build(0x04, { time: self.worldTime });
 
         var packetLength = 0;
         
         self.players.forEach(function (client, idx) {
-            var clientlist = self.packetBuilder.build(0xC9, {
+            var clientlist = self.packetWriter.build(0xC9, {
                 playerName: client.player.name,
                 online: true,
                 ping: client.player.getPing()
@@ -87,7 +91,7 @@ World.prototype.write = function (data, encoding) {
     if (data.data === 'end') {
         data.client.closed = true;
         this.removePlayerFromList(data.client.id);
-        console.log('Connection closed!');
+        console.log('Connection closed!'.red);
         data.client.network.end();
         return;
     }
@@ -95,7 +99,7 @@ World.prototype.write = function (data, encoding) {
     if (data.data === 'exception') {
         data.client.closed = true;
         this.removePlayerFromList(data.client.id);
-        console.log('Socket Exception: ' + data.exception);
+        console.log('Socket Exception: '.red + data.exception);
         data.client.network.end();
         return;
     }
@@ -103,7 +107,7 @@ World.prototype.write = function (data, encoding) {
     if (data.data === 'destroyed') {
         data.client.closed = true;
         this.removePlayerFromList(data.client.id);
-        console.log('Connection destroyed!');
+        console.log('Connection destroyed!'.red);
         data.client.network.end();
         return;
     }
@@ -122,7 +126,6 @@ World.prototype.error = function () {
 World.prototype.destroy = function (client) {
     this.emit('destroy');
     console.log(client);
-
 };
 
 World.prototype.loadSettings = function () {
@@ -147,15 +150,13 @@ World.prototype.sendToOtherPlayers = function (packet, sourcePlayer) {
 World.prototype.sendEntitiesToPlayer = function(targetPlayer) {
     var self = this;
     this.entities.forEach(function (entity, idx) {
-      console.log(targetPlayer.player.entityId);
-      console.log(entity.entityId);
         if (targetPlayer.player.entityId !== entity.entityId) {
             if(targetPlayer.closed) {
               return;              
             } 
             
             var absolutePosition = entity.getAbsolutePosition();
-            var namedEntity = self.packetBuilder.build(0x14, {
+            var namedEntity = self.packetWriter.build(0x14, {
                 entityId: entity.entityId,
                 playerName: entity.name,
                 x: absolutePosition.x,
@@ -184,16 +185,30 @@ World.prototype.removePlayerFromList = function (id) {
     var client = this.findPlayer(id);
     if (client) {
         this.players.splice(client.index, 1);
-        var leavingChat = this.packetBuilder.build(0x03, { message: client.player.name + ' (' + client.id + ') has left the world!' });
-        var clientlist = this.packetBuilder.build(0xC9, {
-            playerName: client.player.name,
-            online: false,
-            ping: 0
-        });
+        if(this.players.length > 0) {
+          var leavingChat = this.packetWriter.build(0x03, { message: client.player.name + ' (' + client.id + ') has left the world!' });
+          var clientlist = this.packetWriter.build(0xC9, {
+              playerName: client.player.name,
+              online: false,
+              ping: 0
+          });
 
-        this.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length+leavingChat.length));
+          this.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length+leavingChat.length));
+        }
         return;
     }
+};
+
+World.prototype.protocolCheck = function(protocol, client) {
+    if (protocol !== 39) {
+        console.log("The client sent a protocol id we don't support: %d".red, protocol);
+        var kick = this.packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.3.2 to use this server!' });
+        client.network.write(kick);
+        client.network.end();
+        return false;
+    }
+
+    return true;
 };
 
 module.exports = World;

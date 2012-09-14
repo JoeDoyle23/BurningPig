@@ -1,25 +1,24 @@
 ﻿var BinaryReader = require('./beConverters').BinaryReader,
     util = require('util');
 
-var clientParser = function () {
+var packetReader = function () {
     var self = this;
 
     var parsers = [];
 
     parsers[0x00] = function (binaryReader) {
-        //console.log('Got keepalive');
+        //console.log('Got keepalive'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
             keepAliveId: binaryReader.readInt()
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
-
+        return data;
     };
 
     parsers[0x02] = function (binaryReader) {
-        //console.log('Got handshake');
+        //console.log('Got handshake'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
@@ -29,22 +28,22 @@ var clientParser = function () {
             serverPort: binaryReader.readInt()
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x03] = function (binaryReader) {
-        //console.log('Got chat message');
+        //console.log('Got chat message'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
             message: binaryReader.readString()
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x07] = function (binaryReader) {
-        //console.log('Got use entity');
+        //console.log('Got use entity'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
@@ -53,22 +52,22 @@ var clientParser = function () {
             mouseButton: binaryReader.readBool()
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x0A] = function (binaryReader) {
-        //console.log('Got Player Status');
+        //console.log('Got Player Status'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
             onGround: binaryReader.readBool(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x0B] = function (binaryReader) {
-        //console.log('Got Player Position');
+        //console.log('Got Player Position'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
@@ -79,7 +78,7 @@ var clientParser = function () {
             onGround: binaryReader.readBool(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x0C] = function (binaryReader) {
@@ -92,13 +91,12 @@ var clientParser = function () {
             onGround: binaryReader.readBool(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x0D] = function (binaryReader) {
-        //console.log('Got Player Position & Look');
+        //console.log('Got Player Position & Look'.cyan);
 
-        //console.log('PL packet: ' + util.inspect(binaryReader.getBuffer(), true, null, true));
         var data = {
             type: binaryReader.readByte(),
             x: binaryReader.readDouble(),
@@ -110,7 +108,7 @@ var clientParser = function () {
             onGround: binaryReader.readBool(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x0E] = function (binaryReader) {
@@ -125,7 +123,7 @@ var clientParser = function () {
             face: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x0F] = function (binaryReader) {
@@ -143,7 +141,7 @@ var clientParser = function () {
             cursorZ: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x10] = function (binaryReader) {
@@ -154,7 +152,7 @@ var clientParser = function () {
             slotId: binaryReader.readShort(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x12] = function (binaryReader) {
@@ -166,7 +164,7 @@ var clientParser = function () {
             animation: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x13] = function (binaryReader) {
@@ -178,7 +176,7 @@ var clientParser = function () {
             action: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x65] = function (binaryReader) {
@@ -189,7 +187,7 @@ var clientParser = function () {
             windowId: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x66] = function (binaryReader) {
@@ -205,7 +203,7 @@ var clientParser = function () {
             clickedItem: binaryReader.readSlot(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x6A] = function (binaryReader) {
@@ -218,7 +216,7 @@ var clientParser = function () {
             accepted: binaryReader.readBool(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x6B] = function (binaryReader) {
@@ -230,7 +228,7 @@ var clientParser = function () {
             clickedItem: binaryReader.readSlot(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x6C] = function (binaryReader) {
@@ -242,7 +240,7 @@ var clientParser = function () {
             enchantment: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0x82] = function (binaryReader) {
@@ -259,7 +257,7 @@ var clientParser = function () {
             text4: binaryReader.readString(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0xCA] = function (binaryReader) {
@@ -272,7 +270,7 @@ var clientParser = function () {
             walkingSpeed: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0xCB] = function (binaryReader) {
@@ -283,11 +281,11 @@ var clientParser = function () {
             text: binaryReader.readString(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0xCC] = function (binaryReader) {
-        console.log('Got Locale and View Distance');
+        console.log('Got Locale and View Distance'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
@@ -297,18 +295,18 @@ var clientParser = function () {
             difficulty: binaryReader.readByte()
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0xCD] = function (binaryReader) {
-        console.log('Got Client Statuses');
+        console.log('Got Client Statuses'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
             payload: binaryReader.readByte(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0xFA] = function (binaryReader) {
@@ -321,7 +319,7 @@ var clientParser = function () {
             data: binaryReader.readArray(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0xFC] = function (binaryReader) {
@@ -335,33 +333,37 @@ var clientParser = function () {
             token: binaryReader.readArray(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     parsers[0xFE] = function (binaryReader) {
-        console.log('Got Server Ping Packet!');
-        return { data: { type: binaryReader.readByte() }, bufferUsed: binaryReader.getPosition() };
+        console.log('Got Server Ping Packet!'.cyan);
+        return { type: binaryReader.readByte() };
     };
 
     parsers[0xFF] = function (binaryReader) {
-        console.log('Got Disconnect/Kick');
+        console.log('Got Disconnect/Kick'.cyan);
 
         var data = {
             reason: binaryReader.readString(),
         };
 
-        return { data: data, bufferUsed: binaryReader.getPosition() };
+        return data;
     };
 
     self.parse = function (inputBuffer) {
         var type = inputBuffer[0];
         if (!parsers.hasOwnProperty(type)) {
-            return { data: {}, error: 'unknown type: ' + type };
+            return { data: {}, error: util.format('unknown type: %s'.red, type.toString(16)) };
         }
 
         var binaryReader = new BinaryReader(inputBuffer);
-        return parsers[type](binaryReader);
+        var packet = parsers[type](binaryReader);
+        self.bufferUsed = binaryReader.getPosition();
+        return packet;
     };
+    
+    self.bufferUsed = 0;
 };
 
-module.exports = new clientParser();
+module.exports = new packetReader();

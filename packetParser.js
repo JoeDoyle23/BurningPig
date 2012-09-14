@@ -1,6 +1,7 @@
 ﻿var util = require('util'),
+    colors = require('colors'),
     Stream = require('stream').Stream,
-    clientParser = require('./clientParser');
+    packetReader = require('./packetReader');
 
 function PacketParser(client) {
     Stream.call(this);
@@ -17,30 +18,29 @@ PacketParser.prototype.write = function (data, encoding) {
 
     do {
         try {
-            var packet = clientParser.parse(allData);
+            var packet = packetReader.parse(allData);
 
             if (packet.error) {
                 console.log(packet.error);
                 //throw { message: packet.err };
             }
 
-            //console.log("Packet data: " + util.inspect(packet, true, null, true));
-            this.emit('data', { data: packet.data, client: this.client });
+            this.emit('data', { data: packet, client: this.client });
 
-            if (allData.length === packet.bufferUsed) {
+            if (allData.length === packetReader.bufferUsed) {
                 this.partialData = new Buffer(0);
                 allData = new Buffer(0);
             } else {
-                allData = allData.slice(packet.bufferUsed);
+                allData = allData.slice(packetReader.bufferUsed);
             }
 
         } catch (err) {
             if (err.message == "oob") {
-                console.log('oob detected');
+                console.log('OOB detected'.red);
                 partialData = allData;
                 break;
             } else {
-                console.log('Exception!:\n' + err);
+                console.log('Exception!:\n'.red + err);
                 throw err;
             }
         }
