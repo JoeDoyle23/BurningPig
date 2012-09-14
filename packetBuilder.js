@@ -46,7 +46,7 @@ var PacketBuilder = function() {
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x04);
-      binaryWriter.writeLong(data.time);
+      binaryWriter.writeArray(data.time);
 
       return packet;
   };
@@ -136,7 +136,7 @@ var PacketBuilder = function() {
   };
 
   builders[0x14] = function (data) {
-      var packet = new Buffer(23 + data.playerName.length*2);
+      var packet = new Buffer(31 + data.playerName.length*2);
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x14);
@@ -145,8 +145,8 @@ var PacketBuilder = function() {
       binaryWriter.writeInt(data.x);
       binaryWriter.writeInt(data.y);
       binaryWriter.writeInt(data.z);
-      binaryWriter.writeFloat(data.yaw);
-      binaryWriter.writeFloat(data.pitch);
+      binaryWriter.writeByte(data.yaw);
+      binaryWriter.writeByte(data.pitch);
       binaryWriter.writeShort(data.currentItem);
       binaryWriter.writeMetaData();
       return packet;

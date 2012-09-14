@@ -98,7 +98,11 @@ var BinaryWriter = function(buffer, start) {
 
   self.writeMetaData = function (data) {
       //TODO: metadata
-      buffer.writeInt8(127, cursor.pos);
+      buffer.writeInt32BE(0x4800, cursor.pos);
+      cursor.pos += 4;
+      buffer.writeInt32BE(0x7F, cursor.pos);
+      cursor.pos += 4;
+
   }
 
 };

@@ -11,11 +11,14 @@ function World() {
     Stream.call(this);
     this.writable = true;
     this.readable = true;
-
+    this.worldTime = new Buffer(8);
+    this.worldTime.fill(0);
     this.players = [];
     this.terrain = new Terrain();
     this.packetHandler = new PacketHandler(self);
     this.packetBuilder = new PacketBuilder();
+    this.entities = [];
+    this.nextEntityId = 1;
 
     this.settings = {
         serverName: 'BurningPig Dev Server!',
@@ -24,7 +27,7 @@ function World() {
     };
 
     this.startKeepAlives();
-
+    this.startTimeAndClients();
 };
 
 util.inherits(World, Stream);
@@ -38,9 +41,11 @@ World.prototype.startKeepAlives = function () {
         }
 
         self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
-        var ka = {
-            keepAliveId: self.lastKeepAlive
-        };
+        var ka = { keepAliveId: self.lastKeepAlive };
+
+        self.players.forEach(function (client, idx) {
+            client.player.pingTimer = process.hrtime();
+        });
 
         var keepAlivePacket = self.packetBuilder.build(0x00, ka);
         self.sendToAllPlayers(keepAlivePacket);
@@ -48,26 +53,56 @@ World.prototype.startKeepAlives = function () {
     }, 1000);
 };
 
+World.prototype.startTimeAndClients = function () {
+    var self = this;
+
+    this.timeTimer = setInterval(function () {
+        var timeHigh = self.worldTime.readUInt32BE(0, 4);
+        var timeLow = self.worldTime.readUInt32BE(4, 4) + 1;
+        if (timeLow & 0xFFFF === 0) {
+            timeHigh++;
+        }
+        self.worldTime.writeUInt32BE(timeHigh, 0, 4);
+        self.worldTime.writeUInt32BE(timeLow, 4, 4);
+
+        var time = self.packetBuilder.build(0x04, { time: self.worldTime });
+
+        var packetLength = 0;
+        
+        self.players.forEach(function (client, idx) {
+            var clientlist = self.packetBuilder.build(0xC9, {
+                playerName: client.player.name,
+                online: true,
+                ping: client.player.getPing()
+            });
+            self.sendToAllPlayers(clientlist);
+        });
+
+        self.sendToAllPlayers(time);
+    }, 50);
+
+};
+
 World.prototype.write = function (data, encoding) {
     if (data.data === 'end') {
-        this.removePlayerFromList(data.client.id);
         data.client.closed = true;
+        this.removePlayerFromList(data.client.id);
         console.log('Connection closed!');
         data.client.network.end();
         return;
     }
 
     if (data.data === 'exception') {
-        this.removePlayerFromList(data.client.id);
         data.client.closed = true;
+        this.removePlayerFromList(data.client.id);
         console.log('Socket Exception: ' + data.exception);
         data.client.network.end();
         return;
     }
 
     if (data.data === 'destroyed') {
-        this.removePlayerFromList(data.client.id);
         data.client.closed = true;
+        this.removePlayerFromList(data.client.id);
         console.log('Connection destroyed!');
         data.client.network.end();
         return;
@@ -104,7 +139,9 @@ World.prototype.sendToAllPlayers = function (packet) {
 
 World.prototype.sendToOtherPlayers = function (packet, sourcePlayer) {
     this.players.forEach(function (client, idx) {
-        if (!client.closed && sourcePlayer.id!==client.id) {
+        console.log('op: %d - %d', sourcePlayer.id,client.id);
+        if (!client.closed && (sourcePlayer.id !== client.id)) {
+            console.log('op: sending packet');
             client.network.write(packet);
         }
     });
@@ -125,7 +162,13 @@ World.prototype.removePlayerFromList = function (id) {
     if (client) {
         this.players.splice(client.index, 1);
         var leavingChat = this.packetBuilder.build(0x03, { message: client.player.name + ' (' + client.id + ') has left the world!' });
-        this.sendToAllPlayers(leavingChat);
+        var clientlist = this.packetBuilder.build(0xC9, {
+            playerName: client.player.name,
+            online: false,
+            ping: 0
+        });
+
+        this.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length+leavingChat.length));
         return;
     }
 };
