@@ -1,5 +1,6 @@
 ﻿
 function Player(clientObject) {
+    this.entityType = 'player';
     this.name = clientObject.playername;
     this.entityId = -1;
     this.x = 0;
@@ -33,7 +34,7 @@ Player.prototype.getPositionLook = function () {
         pitch: this.pitch,
         onGround: this.onGround
     };
-}
+};
 
 Player.prototype.getPosition = function () {
     return {
@@ -43,7 +44,7 @@ Player.prototype.getPosition = function () {
         stance: this.stance,
         onGround: this.onGround
     };
-}
+};
 
 Player.prototype.getLook = function () {
     return {
@@ -51,7 +52,17 @@ Player.prototype.getLook = function () {
         pitch: this.pitch,
         onGround: this.onGround
     };
-}
+};
+
+Player.prototype.getAbsolutePosition = function() {
+    return {
+        x: Math.round(this.x) * 32,
+        y: Math.round(this.y) * 32,
+        z: Math.round(this.z) * 32,
+        yaw: (((Math.floor(this.yaw) % 360) / 360) * 256) & 0xFF,
+        pitch: (((Math.floor(this.pitch) % 360) / 360) * 256) & 0xFF
+      };
+};
 
 Player.prototype.updatePosition = function (newPosition) {
 
@@ -100,14 +111,14 @@ Player.prototype.updatePosition = function (newPosition) {
     }
 
     return true;
-}
+};
 
 Player.prototype.startDigging = function (newPosition) {
 
-}
+};
 
 Player.prototype.stopDigging = function (newPosition) {
 
-}
+};
 
 module.exports = Player;

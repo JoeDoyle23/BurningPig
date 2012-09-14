@@ -139,10 +139,33 @@ World.prototype.sendToAllPlayers = function (packet) {
 
 World.prototype.sendToOtherPlayers = function (packet, sourcePlayer) {
     this.players.forEach(function (client, idx) {
-        console.log('op: %d - %d', sourcePlayer.id,client.id);
         if (!client.closed && (sourcePlayer.id !== client.id)) {
-            console.log('op: sending packet');
             client.network.write(packet);
+        }
+    });
+};
+World.prototype.sendEntitiesToPlayer = function(targetPlayer) {
+    var self = this;
+    this.entities.forEach(function (entity, idx) {
+      console.log(targetPlayer.player.entityId);
+      console.log(entity.entityId);
+        if (targetPlayer.player.entityId !== entity.entityId) {
+            if(targetPlayer.closed) {
+              return;              
+            } 
+            
+            var absolutePosition = entity.getAbsolutePosition();
+            var namedEntity = self.packetBuilder.build(0x14, {
+                entityId: entity.entityId,
+                playerName: entity.name,
+                x: absolutePosition.x,
+                y: absolutePosition.y,
+                z: absolutePosition.z,
+                yaw: absolutePosition.yaw,
+                pitch: absolutePosition.pitch,
+                currentItem: 0
+            });
+            targetPlayer.network.write(namedEntity);            
         }
     });
 };

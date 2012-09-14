@@ -57,23 +57,25 @@ function PacketHandler(world) {
         client.network.write(packet);
 
         var playerPosLook = client.player.getPositionLook();
-
-
+        var playerAbsolutePosition = client.player.getAbsolutePosition();
+        
         var namedEntity = packetBuilder.build(0x14, {
             entityId: client.player.entityId,
             playerName: client.player.name,
-            x: 0,
-            y: 2080,
-            z: 0,
-            yaw: 0,
-            pitch: 0,
+            x: playerAbsolutePosition.x,
+            y: playerAbsolutePosition.y,
+            z: playerAbsolutePosition.z,
+            yaw: playerAbsolutePosition.yaw,
+            pitch: playerAbsolutePosition.pitch,
             currentItem: 0
         });
-        world.sendToOtherPlayers(namedEntity, client);
-        //console.log(util.inspect(namedEntity, true, null, true));
 
         world.players.push(client);
-        world.entities[client.player.entitiyId] = client.player;
+        console.log(client.player.entityId);
+        world.entities[client.player.entityId] = client.player;
+
+        world.sendToOtherPlayers(namedEntity, client);
+        world.sendEntitiesToPlayer(client);
 
         var welcomeChat = packetBuilder.build(0x03, { message: data.username + ' (' + client.id + ') has joined the world!' });
         world.sendToAllPlayers(welcomeChat);
