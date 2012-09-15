@@ -259,7 +259,7 @@ var PacketWriter = function() {
   };
 
   builders[0x1D] = function (data) {
-      var packet = new Buffer(2 + data.enityIds.length*4);
+      var packet = new Buffer(2 + data.entityIds.length*4);
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x1D);
@@ -432,9 +432,9 @@ var PacketWriter = function() {
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x35);
-      binaryWriter.writeInt(data.X);
-      binaryWriter.writeByte(data.Y);
-      binaryWriter.writeInt(data.Z);
+      binaryWriter.writeInt(data.x);
+      binaryWriter.writeByte(data.y);
+      binaryWriter.writeInt(data.z);
       binaryWriter.writeShort(data.blockType);
       binaryWriter.writeByte(data.blockMetadata);
       return packet;

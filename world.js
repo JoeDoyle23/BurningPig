@@ -18,7 +18,7 @@ function World() {
     this.terrain = new Terrain();
     this.packetHandler = new PacketHandler(self);
     this.packetWriter = new PacketWriter();
-    this.entities = [];
+    this.entities = {};
     this.nextEntityId = 1;
 
     this.settings = {
@@ -74,30 +74,28 @@ World.prototype.startTimeAndClients = function () {
         var packetLength = 0;
         
         self.players.forEach(function (client, idx) {
+            var cPing = client.player.getPing();
+
             var clientlist = self.packetWriter.build(0xC9, {
                 playerName: client.player.name,
                 online: true,
-                ping: client.player.getPing()
+                ping:  cPing > 0xFFFF ? 0xFFFF : cPing
             });
             self.sendToAllPlayers(clientlist);
         });
 
         self.sendToAllPlayers(time);
     }, 50);
-
 };
 
 World.prototype.write = function (data, encoding) {
     if (data.data === 'end') {
-        data.client.closed = true;
         this.removePlayerFromList(data.client.id);
         console.log('Connection closed!'.red);
-        data.client.network.end();
         return;
     }
 
     if (data.data === 'exception') {
-        data.client.closed = true;
         this.removePlayerFromList(data.client.id);
         console.log('Socket Exception: '.red + data.exception);
         data.client.network.end();
@@ -105,14 +103,13 @@ World.prototype.write = function (data, encoding) {
     }
 
     if (data.data === 'destroyed') {
-        data.client.closed = true;
         this.removePlayerFromList(data.client.id);
         console.log('Connection destroyed!'.red);
         data.client.network.end();
         return;
     }
 
-    this.packetHandler.process(data.data, data.client);
+    this.packetHandler.process(data);
 };
 
 World.prototype.end = function (client) {
@@ -125,7 +122,6 @@ World.prototype.error = function () {
 
 World.prototype.destroy = function (client) {
     this.emit('destroy');
-    console.log(client);
 };
 
 World.prototype.loadSettings = function () {
@@ -134,41 +130,38 @@ World.prototype.loadSettings = function () {
 
 World.prototype.sendToAllPlayers = function (packet) {
     this.players.forEach(function (client, idx) {
-        if (!client.closed) {
-            client.network.write(packet);
-        }
+        client.network.write(packet);
     });
 };
 
 World.prototype.sendToOtherPlayers = function (packet, sourcePlayer) {
     this.players.forEach(function (client, idx) {
-        if (!client.closed && (sourcePlayer.id !== client.id)) {
+        if (sourcePlayer.id !== client.id) {
             client.network.write(packet);
         }
     });
 };
 World.prototype.sendEntitiesToPlayer = function(targetPlayer) {
     var self = this;
-    this.entities.forEach(function (entity, idx) {
-        if (targetPlayer.player.entityId !== entity.entityId) {
-            if(targetPlayer.closed) {
-              return;              
-            } 
-            
-            var absolutePosition = entity.getAbsolutePosition();
-            var namedEntity = self.packetWriter.build(0x14, {
-                entityId: entity.entityId,
-                playerName: entity.name,
-                x: absolutePosition.x,
-                y: absolutePosition.y,
-                z: absolutePosition.z,
-                yaw: absolutePosition.yaw,
-                pitch: absolutePosition.pitch,
-                currentItem: 0
-            });
-            targetPlayer.network.write(namedEntity);            
+    for (var entityId in this.entities) {
+        if (this.entities.hasOwnProperty(entityId)) {
+            var entity = this.entities[entityId];
+            if (targetPlayer.player.entityId !== entity.entityId) {
+                var absolutePosition = entity.getAbsolutePosition();
+                var namedEntity = self.packetWriter.build(0x14, {
+                    entityId: entity.entityId,
+                    playerName: entity.name,
+                    x: absolutePosition.x,
+                    y: absolutePosition.y,
+                    z: absolutePosition.z,
+                    yaw: absolutePosition.yaw,
+                    pitch: absolutePosition.pitch,
+                    currentItem: 0
+                });
+                targetPlayer.network.write(namedEntity);
+            }
         }
-    });
+    }
 };
 
 World.prototype.findPlayer = function(id) {
@@ -193,7 +186,8 @@ World.prototype.removePlayerFromList = function (id) {
               ping: 0
           });
 
-          this.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length+leavingChat.length));
+          this.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length + leavingChat.length));
+          this.removeEntities([client.player.entityId]);
         }
         return;
     }
@@ -209,6 +203,22 @@ World.prototype.protocolCheck = function(protocol, client) {
     }
 
     return true;
+};
+
+World.prototype.removeEntities = function(entityIdArray) {
+    var self = this;
+
+    entityIdArray.forEach(function (entityId, idx) {
+        if (self.entities.hasOwnProperty(entityId)) {
+            delete self.entities[entityId];
+        }
+    });
+
+    var packet = this.packetWriter.build(0x1D, {
+        entityIds: entityIdArray
+    });
+
+    this.sendToAllPlayers(packet);
 };
 
 module.exports = World;

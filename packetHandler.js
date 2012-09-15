@@ -90,32 +90,71 @@ function PacketHandler(world) {
         world.sendToAllPlayers(chat);
     };
 
+    packetHandler[0x0A] = function (data, client) {
+        var goodUpdate = client.player.updatePosition(data);
+        if (goodUpdate) {
+            var position = client.player.getPositionLook();
+            var update = packetWriter.build(0x0D, {
+                entityId: client.player.entityId,
+                x: position.x,
+                y: position.y,
+                z: position.z,
+                stance: position.stance,
+                yaw: position.yaw,
+                pitch: position.pitch,
+                onGround: position.onGround
+            });
+            world.sendToOtherPlayers(update, client);
+        }
+    };
+
     packetHandler[0x0B] = function (data, client) {
         var goodUpdate = client.player.updatePosition(data);
-        //if (goodUpdate) {
-        //    var update = packetWriter.build(0x1F, {
-        //        entityId: client.player.entityId,
-        //        yaw: client.player.yaw,
-        //        pitch: client.player.pitch
-        //    });
-        //    world.sendToOtherPlayers(update, client);
-        //}
+        if (goodUpdate) {
+            var position = client.player.getAbsoluteDelta();
+            var update = packetWriter.build(0x1F, {
+                entityId: client.player.entityId,
+                dX: position.x,
+                dY: position.y,
+                dZ: position.z,
+            });
+            world.sendToOtherPlayers(update, client);
+        }
     };
 
     packetHandler[0x0C] = function (data, client) {
         var goodUpdate = client.player.updatePosition(data);
-        //if (goodUpdate) {
-        //    var update = packetWriter.build(0x20, {
-        //        entityId: client.player.entityId,
-        //        yaw: client.player.yaw,
-        //        pitch: client.player.pitch
-        //    });
-        //    world.sendToOtherPlayers(update, client);
-        //}
+        if (goodUpdate) {
+            var position = client.player.getAbsoluteDelta();
+            var update = packetWriter.build(0x20, {
+                entityId: client.player.entityId,
+                yaw: position.yaw,
+                pitch: position.pitch,
+            });
+
+            var headLook = packetWriter.build(0x23, {
+                entityId: client.player.entityId,
+                headYaw: position.yaw,
+            });
+
+            world.sendToOtherPlayers(Buffer.concat([update, headLook], update.length+headLook.length), client);
+        }
     };
 
     packetHandler[0x0D] = function (data, client) {
-        client.player.updatePosition(data);
+        var goodUpdate = client.player.updatePosition(data);
+        if (goodUpdate) {
+            var position = client.player.getAbsoluteDelta();
+            var update = packetWriter.build(0x21, {
+                entityId: client.player.entityId,
+                dX: position.x,
+                dY: position.y,
+                dZ: position.z,
+                yaw: position.yaw,
+                pitch: position.pitch,
+            });
+            world.sendToOtherPlayers(update, client);
+        }
     };
 
     packetHandler[0x0E] = function (data, client) {
@@ -125,6 +164,16 @@ function PacketHandler(world) {
         }
         if (data.status === 2) {
             console.log('Player stopped digging'.magenta);
+
+            //No digging for now!
+            var packet = packetWriter.build(0x35, {
+                x: data.x,
+                y: data.y,
+                z: data.z,
+                blockType: 3,
+                blockMetadata: 0
+            });
+            world.sendToAllPlayers(packet);
         }
     };
 
@@ -140,11 +189,11 @@ function PacketHandler(world) {
         client.network.end();
     };
 
-    this.process = function (data, client) {
-        if (packetHandler.hasOwnProperty(data.type)) {
-            packetHandler[data.type](data, client);
+    this.process = function (data) {
+        if (packetHandler.hasOwnProperty(data.data.type)) {
+            packetHandler[data.data.type](data.data, data.client);
         } else {
-            console.log("Got unhandled data: ".red + util.inspect(data, true, null, true));
+            console.log("Got unhandled data: ".red + util.inspect(data.data, true, null, true));
         }
     }
 };

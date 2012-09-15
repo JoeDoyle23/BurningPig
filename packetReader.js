@@ -1,7 +1,7 @@
 ﻿var BinaryReader = require('./beConverters').BinaryReader,
     util = require('util');
 
-var packetReader = function () {
+var PacketReader = function () {
     var self = this;
 
     var parsers = [];
@@ -366,4 +366,4 @@ var packetReader = function () {
     self.bufferUsed = 0;
 };
 
-module.exports = new packetReader();
+module.exports = PacketReader;

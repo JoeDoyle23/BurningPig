@@ -6,6 +6,9 @@ function Player(clientObject) {
     this.x = 0;
     this.y = 64.5;
     this.z = 0;
+    this.oldx = 0;
+    this.oldy = 64.5;
+    this.oldz = 0;
     this.stance = 66.12;
     this.yaw = 0;
     this.pitch = 0;
@@ -55,57 +58,69 @@ Player.prototype.getLook = function () {
 
 Player.prototype.getAbsolutePosition = function() {
     return {
-        x: Math.round(this.x) * 32,
-        y: Math.round(this.y) * 32,
-        z: Math.round(this.z) * 32,
+        x: Math.round(this.x * 32),
+        y: Math.round(this.y * 32),
+        z: Math.round(this.z * 32),
         yaw: (((Math.floor(this.yaw) % 360) / 360) * 256) & 0xFF,
         pitch: (((Math.floor(this.pitch) % 360) / 360) * 256) & 0xFF
       };
 };
 
-Player.prototype.updatePosition = function (newPosition) {
+Player.prototype.getAbsoluteDelta = function () {
+    return {
+        x: Math.round(this.x * 32 - this.oldx * 32),
+        y: Math.round(this.y * 32 - this.oldy * 32),
+        z: Math.round(this.z * 32 - this.oldz * 32),
+        yaw: (((Math.floor(this.yaw) % 360) / 360) * 256) & 0xFF,
+        pitch: (((Math.floor(this.pitch) % 360) / 360) * 256) & 0xFF
+    };
+};
 
+Player.prototype.updatePosition = function (newPosition) {
     var coordCheck = function (value, newValue) {
-        return Math.abs(value - newValue) <= 100;
+        Math.abs(value - newValue) <= 100;
     }
 
-    if (newPosition.yaw) {
+    if (newPosition.hasOwnProperty('yaw')) {
         this.yaw = newPosition.yaw;
     }
 
-    if (newPosition.pitch) {
-        this.yaw = newPosition.pitch;
+    if (newPosition.hasOwnProperty('pitch')) {
+        this.pitch = newPosition.pitch;
     }
 
-    if (newPosition.onGround) {
+    if (newPosition.hasOwnProperty('onGround')) {
         this.onGround = newPosition.onGround;
     }
 
-    if (newPosition.x) {
-        if (!coordCheck(this.x, newPosition.x)) {
-            return false;
-        }
+    if (newPosition.hasOwnProperty('x')) {
+        //if (!coordCheck(this.x, newPosition.x)) {
+        //    return false;
+        //}
 
+        this.oldx = this.x;
         this.x = newPosition.x;
     }
 
-    if (newPosition.y) {
-        if (!coordCheck(this.y, newPosition.y)) {
-            return false;
-        }
+    if (newPosition.hasOwnProperty('y')) {
+        //if (!coordCheck(this.y, newPosition.y)) {
+        //    return false;
+        //}
 
+        this.oldy = this.y;
         this.y = newPosition.y;
     }
 
-    if (newPosition.z) {
-        if (!coordCheck(this.z, newPosition.z)) {
-            return false;
-        }
+    if (newPosition.hasOwnProperty('z')) {
+        //if (!coordCheck(this.z, newPosition.z)) {
+        //    return false;
+        //}
 
+        this.oldz = this.z;
         this.z = newPosition.z;
     }
 
-    if (newPosition.stance) {
+    if (newPosition.hasOwnProperty('stance')) {
         this.stance = newPosition.stance;
     }
 
