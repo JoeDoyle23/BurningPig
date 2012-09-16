@@ -1,0 +1,8 @@
+﻿{
+    "serverName": "BurningPig DevServer!",
+    "listenPort": 25565,
+    "maxPlayers": 8,
+    "gameMode": 0,
+    "dimension": 0,
+    "difficulty": 1
+}

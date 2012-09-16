@@ -177,6 +177,10 @@ function PacketHandler(world) {
         }
     };
 
+    packetHandler[0x12] = function (data, client) {
+        //Not sure what we want to do wtih this yet.
+    };
+
     packetHandler[0xCC] = function (data, client) {
         //console.log('ID: %d Got client info data: ' + util.inspect(data, true, null, true), client.id);
     };

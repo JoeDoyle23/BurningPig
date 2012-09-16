@@ -21,16 +21,38 @@ BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, l
 * Time, so day and night happen
 * Chat messages are sent to all connected clients
 * Player positions sync'd across connected clients
+* Server settings are now stored in 'settings.json'.
 
 ##What's Next
-* Digging!
+* Digging! & persistent terrain
 * Player inventory (only current session, not persisted yet)
 * Placing blocks
 
 ##Planned Features
 * Protocol encryption
 * Player validation against minecraft.net
-* Loading/Saving the world(s), probably using NBT & Anvil
+
+##Server Settings
+The settings that control the server options are stored in the settings.json file.
+
+Current settings:
+serverName - The name of the server that shows up in the Multiplayer server screen.
+listenPort - The TCP port the server listens on.
+maxPlayers - The maximium number of players the server supports.
+gameMode - The game mode
+dimension - The dimension of the world
+difficulty - World difficulty
+
+Example:
+
+    {
+        "serverName": "BurningPig DevServer!",
+        "listenPort": 25565,
+        "maxPlayers": 8,
+        "gameMode": 0,
+        "dimension": 0,
+        "difficulty": 1
+    }
 
 ##License
 BuringPig is MIT licensed.  You know the drill.  Enjoy!

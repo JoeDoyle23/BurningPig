@@ -21,14 +21,7 @@ function World() {
     this.entities = {};
     this.nextEntityId = 1;
 
-    this.settings = {
-        serverName: 'BurningPig Dev Server!',
-        listenPort: 25565,
-        maxPlayers: 8,
-        gameMode: 0,
-        dimension: 0,
-        difficulty: 1
-    };
+    this.settings = require('./settings.json');
 
     this.startKeepAlives();
     this.startTimeAndClients();
