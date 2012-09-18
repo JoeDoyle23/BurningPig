@@ -4,7 +4,6 @@
     this.metadata = new Buffer(2048);
     this.light = new Buffer(2048);
     this.skylight = new Buffer(2048);
-    this.heightmap = [];
 
     //Right now chunks will be all dirt
     this.blocks.fill(3);
@@ -55,6 +54,8 @@ function TerrainColumn(x, z) {
     //chunks in Y order, 0-256. No chunk entry means all air
     this.chunks = [];
 
+    this.heightmap = new Buffer(256);
+
     this.biomes = new Buffer(256);
     this.biomes.fill(1);
 
@@ -65,6 +66,10 @@ function TerrainColumn(x, z) {
         addBitmap: 0
     }
 }
+
+TerrainColumn.prototype.getNewChunk = function (y) {
+    return new Chunk(y);
+};
 
 TerrainColumn.prototype.generateTestColumn = function () {
     for (var i = 0; i < 4; i++) {

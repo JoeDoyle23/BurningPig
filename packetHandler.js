@@ -77,10 +77,11 @@ function PacketHandler(world) {
 
         var pos = packetWriter.build(0x0D, playerPosLook);
 
-        var mapdata = world.terrain.compressedChunkData;
-        var map = packetWriter.build(0x38, mapdata);
-        client.network.write(map);
-        client.network.write(pos);
+        world.terrain.getMapPacket(function(mapdata) {
+            var map = packetWriter.build(0x38, mapdata);
+            client.network.write(map);
+            client.network.write(pos);
+        });
     };
 
     packetHandler[0x03] = function (data, client) {
