@@ -179,7 +179,11 @@ function PacketHandler(world) {
     };
 
     packetHandler[0x12] = function (data, client) {
-        //Not sure what we want to do wtih this yet.
+        var packet = packetWriter.build(0x12, {
+            entityId: data.entityId,
+            animation: data.animation
+        });
+        world.sendToOtherPlayers(packet, client);
     };
 
     packetHandler[0xCC] = function (data, client) {

@@ -128,7 +128,7 @@ var PacketWriter = function() {
       var packet = new Buffer(6);
       var binaryWriter = new BinaryWriter(packet);
 
-      binaryWriter.writeByte(0x11);
+      binaryWriter.writeByte(0x12);
       binaryWriter.writeInt(data.entityId);
       binaryWriter.writeByte(data.animation);
 

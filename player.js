@@ -94,27 +94,27 @@ Player.prototype.updatePosition = function (newPosition) {
     }
 
     if (newPosition.hasOwnProperty('x')) {
-        //if (!coordCheck(this.x, newPosition.x)) {
-        //    return false;
-        //}
+        if (!coordCheck(this.x, newPosition.x)) {
+            return false;
+        }
 
         this.oldx = this.x;
         this.x = newPosition.x;
     }
 
     if (newPosition.hasOwnProperty('y')) {
-        //if (!coordCheck(this.y, newPosition.y)) {
-        //    return false;
-        //}
+        if (!coordCheck(this.y, newPosition.y)) {
+            return false;
+        }
 
         this.oldy = this.y;
         this.y = newPosition.y;
     }
 
     if (newPosition.hasOwnProperty('z')) {
-        //if (!coordCheck(this.z, newPosition.z)) {
-        //    return false;
-        //}
+        if (!coordCheck(this.z, newPosition.z)) {
+            return false;
+        }
 
         this.oldz = this.z;
         this.z = newPosition.z;

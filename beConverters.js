@@ -110,6 +110,10 @@ var BinaryWriter = function(buffer, start) {
 var BinaryReader = function (buffer, start) {
     var self = this;
 
+    if (!Buffer.isBuffer(buffer)) {
+        return {};
+    }
+
     var cursor = { pos: start || 0 };
 
     var needs = function (needsBytes) {

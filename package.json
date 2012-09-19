@@ -12,6 +12,9 @@
     "colors": "*",
     "node-int64": "0.3.0"
   },
+  "devDependencies" : {
+      "tap": "~0.3.1"
+  },
   "engines": {
     "node": ">=0.8.8"
   }
