@@ -22,15 +22,17 @@ BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, l
 * Chat messages are sent to all connected clients
 * Player positions sync'd across connected clients
 * Server settings are now stored in 'settings.json'.
+* Digging! & persistent terrain
 
 ##What's Next
-* Digging! & persistent terrain
 * Player inventory (only current session, not persisted yet)
+* Pickups after digging
 * Placing blocks
 
 ##Planned Features
 * Protocol encryption
 * Player validation against minecraft.net
+* Persisted Player inventory
 
 ##Server Settings
 The settings that control the server options are stored in the settings.json file.

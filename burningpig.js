@@ -3,8 +3,8 @@
     fs = require('fs'),
     zlib = require('zlib'),
     colors = require('colors'),
-    PacketParser = require('./packetParser'),
-    BinaryWriter = require('./beConverters').BinaryWriter,
+    PacketParser = require('./network/packetParser'),
+    BinaryWriter = require('./network/beConverters').BinaryWriter,
     World = require('./world');
 
 console.log('Lighting up the BurningPig!'.bold);

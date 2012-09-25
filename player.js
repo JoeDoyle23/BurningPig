@@ -14,6 +14,7 @@ function Player(clientObject) {
     this.pitch = 0;
     this.onGround = true;
     this.rawping = [];
+    this.digging = {};
 };
 
 Player.prototype.getPing = function () {
@@ -78,7 +79,7 @@ Player.prototype.getAbsoluteDelta = function () {
 
 Player.prototype.updatePosition = function (newPosition) {
     var coordCheck = function (value, newValue) {
-        Math.abs(value - newValue) <= 100;
+        return Math.abs(value - newValue) <= 100;
     }
 
     if (newPosition.hasOwnProperty('yaw')) {
@@ -127,12 +128,12 @@ Player.prototype.updatePosition = function (newPosition) {
     return true;
 };
 
-Player.prototype.startDigging = function (newPosition) {
+Player.prototype.validateDigging = function (digInfo) {
+    this.digging.Stop = process.hrtime(this.digging.Start);
 
-};
+    //TODO: really validate digging based on tool and block
 
-Player.prototype.stopDigging = function (newPosition) {
-
+    return true;
 };
 
 module.exports = Player;

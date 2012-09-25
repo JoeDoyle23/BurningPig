@@ -1,7 +1,6 @@
 ﻿var util = require('util')
   , crypto = require('crypto')
-  , colors = require('colors')
-  , PacketWriter = require('./packetWriter')
+  , PacketWriter = require('./network/packetWriter')
   , Player = require('./player');
   
 function PacketHandler(world) {
@@ -162,16 +161,28 @@ function PacketHandler(world) {
 
         if (data.status === 0) {
             console.log('Player started digging'.magenta);
+            client.player.digging = {
+                Start: process.hrtime(),
+                x: data.x,
+                y: data.y,
+                z: data.z,
+                face: data.face
+            };
+
         }
         if (data.status === 2) {
             console.log('Player stopped digging'.magenta);
 
-            //No digging for now!
+            var digGood = client.player.validateDigging(data);
+
+            
+            world.terrain.setBlock({ x: data.x, y: data.y, z: data.z }, { blockType: 0, metadata: 0, light: 0, skylight: 0xFF });
+
             var packet = packetWriter.build(0x35, {
                 x: data.x,
                 y: data.y,
                 z: data.z,
-                blockType: 3,
+                blockType: 0,
                 blockMetadata: 0
             });
             world.sendToAllPlayers(packet);

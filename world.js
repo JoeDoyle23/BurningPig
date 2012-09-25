@@ -1,10 +1,9 @@
 ﻿var util = require('util');
 var Stream = require('stream').Stream;
-var colors = require('colors');
 var crypto = require('crypto');
-var Terrain = require('./terrain');
+var Terrain = require('./terrain/terrain');
 var PacketHandler = require('./packetHandler');
-var PacketWriter = require('./packetWriter');
+var PacketWriter = require('./network/packetWriter');
 var Player = require('./player');
 
 function World() {
@@ -170,8 +169,11 @@ World.prototype.findPlayer = function(id) {
 World.prototype.removePlayerFromList = function (id) {
     var client = this.findPlayer(id);
     if (client) {
+        var clientEntityId = client.player.entityId;
+        console.log('Entity: %d', clientEntityId);
         this.players.splice(client.index, 1);
-        if(this.players.length > 0) {
+        this.removeEntities([clientEntityId]);
+        if (this.players.length > 0) {
           var leavingChat = this.packetWriter.build(0x03, { message: client.player.name + ' (' + client.id + ') has left the world!' });
           var clientlist = this.packetWriter.build(0xC9, {
               playerName: client.player.name,
@@ -180,7 +182,6 @@ World.prototype.removePlayerFromList = function (id) {
           });
 
           this.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length + leavingChat.length));
-          this.removeEntities([client.player.entityId]);
         }
         return;
     }
@@ -210,6 +211,9 @@ World.prototype.removeEntities = function(entityIdArray) {
     var packet = this.packetWriter.build(0x1D, {
         entityIds: entityIdArray
     });
+
+    console.log(self.entities.length);
+
 
     this.sendToAllPlayers(packet);
 };
