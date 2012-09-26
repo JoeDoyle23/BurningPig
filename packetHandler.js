@@ -32,6 +32,10 @@ function PacketHandler(world) {
         if(!world.protocolCheck(data.protocol, client)) {
           return;
         }
+
+        if (!world.serverFullCheck(client)) {
+          return;
+        }
         
         client.id = crypto.randomBytes(4).readUInt32BE(0);
         client.player = new Player(client);

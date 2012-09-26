@@ -49,4 +49,15 @@ Chunk.prototype.setBlock = function (index, blockData) {
     this.skylight[index/2] |= (blockData.skylight << ((index % 2) * 4));
 };
 
+Chunk.prototype.getHighestBlock = function (x, z) {
+    for (var y = 15; y >= 0; y--) {
+        var blockIndex = x + (z * 16) + (y * 256);
+        if (this.getBlock(blockIndex).blockType != 0) {
+            return y;
+        }
+    }
+
+    return -1;
+};
+
 module.exports = Chunk;

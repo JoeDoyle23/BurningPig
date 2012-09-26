@@ -1,1 +1,1 @@
-nodemon burningpig -watch ./
+nodemon -w ./ -w ./terrain -w ./network burningpig.js

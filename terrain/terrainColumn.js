@@ -42,7 +42,6 @@ TerrainColumn.prototype.getBlock = function (position) {
 };
 
 TerrainColumn.prototype.setBlock = function (position, blockData) {
-    console.log(position);
     var chunk = Math.floor(position.y / 16);
     var chunkY = position.y % 16;
     var blockIndex = position.x + (position.z * 16) + (chunkY * 256);
@@ -69,6 +68,10 @@ TerrainColumn.prototype.getTransmissionBuffer = function () {
     var all = b.concat(m, l, s);
     all.push(this.biomes);
     return Buffer.concat(all, totalLength + this.biomes.length);
+};
+
+TerrainColumn.prototype.updateHeightMap = function (position) {
+
 };
 
 module.exports = TerrainColumn;

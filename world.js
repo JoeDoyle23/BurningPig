@@ -199,6 +199,18 @@ World.prototype.protocolCheck = function(protocol, client) {
     return true;
 };
 
+World.prototype.serverFullCheck = function (client) {
+    if (this.players.length === this.settings.maxPlayers) {
+        console.log("The server is full!".red);
+        var kick = this.packetWriter.build(0xFF, { serverStatus: 'Sorry, the server is full.' });
+        client.network.write(kick);
+        client.network.end();
+        return false;
+    }
+
+    return true;
+};
+
 World.prototype.removeEntities = function(entityIdArray) {
     var self = this;
 
