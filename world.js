@@ -1,6 +1,6 @@
 ﻿var util = require('util');
 var Stream = require('stream').Stream;
-var crypto = require('crypto');
+//var crypto = require('crypto');
 var Terrain = require('./terrain/terrain');
 var PacketHandler = require('./packetHandler');
 var PacketWriter = require('./network/packetWriter');

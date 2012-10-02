@@ -193,6 +193,18 @@ function PacketHandler(world) {
         }
     };
 
+    packetHandler[0x10] = function (data, client) {
+        client.player.activeSlot = data.slotId;
+
+        var entityHolding = packetWriter.build(0x05, {
+            entityId: client.player.entityId,
+            slot: 0,
+            item: { blockId: -1 }
+        });
+
+        world.sendToOtherPlayers(enityHolding);
+    };
+
     packetHandler[0x12] = function (data, client) {
         var packet = packetWriter.build(0x12, {
             entityId: data.entityId,
@@ -203,6 +215,13 @@ function PacketHandler(world) {
 
     packetHandler[0xCC] = function (data, client) {
         //console.log('ID: %d Got client info data: ' + util.inspect(data, true, null, true), client.id);
+    };
+
+    packetHandler[0xFC] = function (data, client) {
+        console.log('Got encryption response');
+
+        client.network.write(packet);
+        client.network.end();
     };
 
     packetHandler[0xFE] = function (data, client) {

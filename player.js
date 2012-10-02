@@ -15,6 +15,9 @@ function Player(clientObject) {
     this.onGround = true;
     this.rawping = [];
     this.digging = {};
+
+    this.inventory = {};
+    this.activeSlot = 0;
 };
 
 Player.prototype.getPing = function () {

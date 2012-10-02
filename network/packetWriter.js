@@ -53,11 +53,11 @@ var PacketWriter = function() {
 
   builders[0x05] = function (data) {
       var size = 9;
-      if (data.blockId !== -1) {
+      if (data.item.blockId !== -1) {
           size += 6;
       };
-      if (data.metaData || data.metaData.length !== -1) {
-          size += data.metaData.length;
+      if (data.item.metaData || data.item.metaData.length !== -1) {
+          size += data.item.metaData.length;
       }
       var packet = new Buffer(size);
       var binaryWriter = new BinaryWriter(packet);
@@ -648,11 +648,25 @@ var PacketWriter = function() {
   };
 
   builders[0xFC] = function (data) {
-      //TODO: Encryption
+      var packet = new Buffer(5);
+      var binaryWriter = new BinaryWriter(packet);
+
+      binaryWriter.writeByte(0xFC);
+      binaryWriter.writeShort(0);
+      binaryWriter.writeShort(0);
   };
 
   builders[0xFD] = function (data) {
-      //TODO: Encryption
+      var packet = new Buffer(173 + data.serverId.length);
+      var binaryWriter = new BinaryWriter(packet);
+
+      binaryWriter.writeByte(0xFD);
+      binaryWriter.writeString(data.serverId);
+      binaryWriter.writeShort(data.publicKey.length);
+      binaryWriter.writeArray(data.publicKey);
+      binaryWriter.writeShort(4);
+      binaryWriter.writeArray(data.token);
+      return packet;
   };
     
   builders[0xFF] = function (data) {
