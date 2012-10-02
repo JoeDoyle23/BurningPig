@@ -23,6 +23,7 @@ util.inherits(EncryptionStream, Stream);
 EncryptionStream.prototype.write = function (data, encoding) {
 	if(!this.encryptionEnabled) {
 		this.emit('data', data);
+        return;
 	}
 	var encryptedData = this.aes.update(data);
 	this.emit('data', encryptedData);
