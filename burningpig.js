@@ -6,24 +6,22 @@
     crypto = require('crypto'),
     PacketParser = require('./network/packetParser'),
     BinaryWriter = require('./network/beConverters').BinaryWriter,
-    World = require('./world'),
-    Encryption = require('./network/encryption');
+    World = require('./world');
+    
 
 console.log('Lighting up the BurningPig!'.bold);
     
 var world = new World();
 world.loadSettings();
 
-var encryption = new Encryption();
 
 var server = net.createServer(function (stream) {
     
-    var sharedSecret = crypto.randomBytes(16);
     var client = { 
-        network: encryption.getEncryptor(sharedSecret),
-        id: sharedSecret.readUInt32BE(0),
-        decryptor: encryption.getDecryptor(sharedSecret),
+        network: world.encryption.getEncryptor(),
+        decryptor: world.encryption.getDecryptor(),
     };
+    
     client.encrpytor = client.network;
     client.encrpytor.pipe(stream);
 

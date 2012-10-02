@@ -654,17 +654,19 @@ var PacketWriter = function() {
       binaryWriter.writeByte(0xFC);
       binaryWriter.writeShort(0);
       binaryWriter.writeShort(0);
+
+      return packet;
   };
 
   builders[0xFD] = function (data) {
-      var packet = new Buffer(173 + data.serverId.length);
+      var packet = new Buffer(7 + data.serverId.length*2 + data.publicKey.length + data.token.length);
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0xFD);
       binaryWriter.writeString(data.serverId);
       binaryWriter.writeShort(data.publicKey.length);
       binaryWriter.writeArray(data.publicKey);
-      binaryWriter.writeShort(4);
+      binaryWriter.writeShort(data.token.length);
       binaryWriter.writeArray(data.token);
       return packet;
   };

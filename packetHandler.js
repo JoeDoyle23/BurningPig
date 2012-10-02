@@ -37,54 +37,18 @@ function PacketHandler(world) {
           return;
         }
         
+        client.token = crypto.randomBytes(4);
         client.id = crypto.randomBytes(4).readUInt32BE(0);
-        client.player = new Player(client);
-        client.player.name = data.username + crypto.randomBytes(1).readUInt8(0);
-        client.player.entityId = world.nextEntityId++;
-        
-        console.log('New Player Id: %d EntityId: %d'.yellow, client.id, client.player.entityId);
-        console.log('World Status: Players: %d'.yellow, world.players.length);
 
-        var packet = packetWriter.build(0x01, {
-            entityId: client.player.entityId,
-            gameMode: world.settings.gameMode,
-            dimension: world.settings.dimension,
-            difficulty: world.settings.difficulty,
-            maxPlayers: world.settings.maxPlayers
-        });
-        client.network.write(packet);
+        client.handshakeData = data;
 
-        var playerPosLook = client.player.getPositionLook();
-        var playerAbsolutePosition = client.player.getAbsolutePosition();
-        
-        var namedEntity = packetWriter.build(0x14, {
-            entityId: client.player.entityId,
-            playerName: client.player.name,
-            x: playerAbsolutePosition.x,
-            y: playerAbsolutePosition.y,
-            z: playerAbsolutePosition.z,
-            yaw: playerAbsolutePosition.yaw,
-            pitch: playerAbsolutePosition.pitch,
-            currentItem: 0
+        var encryptionStart = packetWriter.build(0xFD, {
+            serverId: 'BurningPig',
+            publicKey: world.encryption.ASN,
+            token: client.token
         });
 
-        world.players.push(client);
-        world.entities[client.player.entityId] = client.player;
-
-        world.sendToOtherPlayers(namedEntity, client);
-        world.sendEntitiesToPlayer(client);
-
-        console.log('%s (%d) has joined the world!', data.username, client.id);
-        var welcomeChat = packetWriter.build(0x03, { message: data.username + ' (' + client.id + ') has joined the world!' });
-        world.sendToAllPlayers(welcomeChat);
-
-        var pos = packetWriter.build(0x0D, playerPosLook);
-
-        world.terrain.getMapPacket(function(mapdata) {
-            var map = packetWriter.build(0x38, mapdata);
-            client.network.write(map);
-            client.network.write(pos);
-        });
+        client.network.write(encryptionStart);
     };
 
     packetHandler[0x03] = function (data, client) {
@@ -217,11 +181,83 @@ function PacketHandler(world) {
         //console.log('ID: %d Got client info data: ' + util.inspect(data, true, null, true), client.id);
     };
 
+    packetHandler[0xCD] = function (data, client) {
+        if(data.payload !== 0) {
+            console.log('Hmm, the client send data in the 0xCD other than 0.'.red);
+        }
+
+        var handshakeData = client.handshakeData;
+
+        client.player = new Player(client);
+        client.player.name = handshakeData.username;
+        client.player.entityId = world.nextEntityId++;
+        
+        console.log('New Player Id: %d EntityId: %d'.yellow, client.id, client.player.entityId);
+        console.log('World Status: Players: %d'.yellow, world.players.length);
+
+        var packet = packetWriter.build(0x01, {
+            entityId: client.player.entityId,
+            gameMode: world.settings.gameMode,
+            dimension: world.settings.dimension,
+            difficulty: world.settings.difficulty,
+            maxPlayers: world.settings.maxPlayers
+        });
+        client.network.write(packet);
+
+        var playerPosLook = client.player.getPositionLook();
+        var playerAbsolutePosition = client.player.getAbsolutePosition();
+        
+        var namedEntity = packetWriter.build(0x14, {
+            entityId: client.player.entityId,
+            playerName: client.player.name,
+            x: playerAbsolutePosition.x,
+            y: playerAbsolutePosition.y,
+            z: playerAbsolutePosition.z,
+            yaw: playerAbsolutePosition.yaw,
+            pitch: playerAbsolutePosition.pitch,
+            currentItem: 0
+        });
+
+        world.players.push(client);
+        world.entities[client.player.entityId] = client.player;
+
+        world.sendToOtherPlayers(namedEntity, client);
+        world.sendEntitiesToPlayer(client);
+
+        console.log('%s (%d) has joined the world!', handshakeData.username, client.id);
+        var welcomeChat = packetWriter.build(0x03, { message: handshakeData.username + ' (' + client.id + ') has joined the world!' });
+        world.sendToAllPlayers(welcomeChat);
+
+        var pos = packetWriter.build(0x0D, playerPosLook);
+
+        world.terrain.getMapPacket(function(mapdata) {
+            var map = packetWriter.build(0x38, mapdata);
+            client.network.write(map);
+            client.network.write(pos);
+        });
+
+    };
+
     packetHandler[0xFC] = function (data, client) {
         console.log('Got encryption response');
 
-        client.network.write(packet);
-        client.network.end();
+        var token = world.encryption.decryptSharedSecret(data.token.toString('hex'));
+        var secret = world.encryption.decryptSharedSecret(data.sharedSecret.toString('hex'));
+
+        if(client.token.toString('hex') !== token.toString('hex')) {
+            var serverStatus = "Encryption setup failed!";
+            var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
+
+            client.network.write(packet);
+            client.network.end();
+            return;
+        }
+
+        var encryptionAccepted = packetWriter.build(0xFC, {});
+        client.network.write(encryptionAccepted);
+
+        client.network.enableEncryption(secret);
+        client.decryptor.enableEncryption(secret);
     };
 
     packetHandler[0xFE] = function (data, client) {

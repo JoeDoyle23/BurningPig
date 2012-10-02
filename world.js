@@ -5,6 +5,7 @@ var Terrain = require('./terrain/terrain');
 var PacketHandler = require('./packetHandler');
 var PacketWriter = require('./network/packetWriter');
 var Player = require('./player');
+var Encryption = require('./network/encryption');
 
 function World() {
     var self = this;
@@ -20,6 +21,9 @@ function World() {
     this.entities = {};
     this.nextEntityId = 1;
 
+    this.encryption = new Encryption();
+    this.encryption.init();
+    
     this.settings = require('./settings.json');
 
     this.startKeepAlives();

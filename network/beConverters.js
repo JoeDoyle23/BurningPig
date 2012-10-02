@@ -221,7 +221,8 @@ var BinaryReader = function (buffer, start) {
 
     self.readArray = function (length) {
         var data = new Buffer(length);
-        buffer.copy(data, 0, cursor.pos, length);
+        buffer.copy(data, 0, cursor.pos, cursor.pos + length);
+        cursor.pos += length;
         return data;
     }
 

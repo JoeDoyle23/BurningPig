@@ -1,21 +1,15 @@
-﻿var crypto = require('crypto');
-var util = require('util');
-var Stream = require('stream').Stream;
-var rsa = require("bignumber");
+﻿var rsa = require("bignumber");
 var EncryptionStream = require('./encryptionStream');
 
 function Encryption() {
-    Stream.call(this);
-    this.writable = true;
-    this.readable = true;
-
     this.key = new rsa.Key();
+};
+
+Encryption.prototype.init = function() {
     console.log('Generating RSA key...');
     this.key.generate(1024, "10001");
     this.buildASN();
 };
-
-util.inherits(Encryption, Stream);
 
 Encryption.prototype.buildASN = function() {
 	var asnHeader = new Buffer([0x30, 0x81, 0x9F, 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7,
@@ -28,17 +22,16 @@ Encryption.prototype.buildASN = function() {
 };
 
 Encryption.prototype.decryptSharedSecret = function(encyptedSecret) {
-	return key.decrypt(encyptedSecret);
+	return this.key.decrypt(encyptedSecret);
 };
 
-Encryption.prototype.getEncryptor = function(sharedSecret) {
-	return new EncryptionStream('e', sharedSecret);
+Encryption.prototype.getEncryptor = function() {
+	return new EncryptionStream('e');
 };
 
 
-Encryption.prototype.getDecryptor = function(sharedSecret) {
-	return new EncryptionStream('d', sharedSecret);
+Encryption.prototype.getDecryptor = function() {
+	return new EncryptionStream('d');
 };
-
 
 module.exports = Encryption;

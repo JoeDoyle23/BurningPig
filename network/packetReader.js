@@ -328,10 +328,11 @@ var PacketReader = function () {
         var data = {
             type: binaryReader.readByte(),
             sharedSecretLength: binaryReader.readShort(),
-            sharedSecret: binaryReader.readArray(),
-            tokenLength: binaryReader.readShort(),
-            token: binaryReader.readArray(),
         };
+
+        data.sharedSecret = binaryReader.readArray(data.sharedSecretLength);
+        data.tokenLength = binaryReader.readShort();
+        data.token = binaryReader.readArray(data.tokenLength);
 
         return data;
     };

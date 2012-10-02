@@ -23,15 +23,15 @@ BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, l
 * Player positions sync'd across connected clients
 * Server settings are now stored in 'settings.json'.
 * Digging! & persistent terrain
+* Protocol encryption
 
 ##What's Next
 * Player inventory (only current session, not persisted yet)
 * Pickups after digging
 * Placing blocks
+* Player validation against minecraft.net
 
 ##Planned Features
-* Protocol encryption
-* Player validation against minecraft.net
 * Persisted Player inventory
 
 ##Server Settings
