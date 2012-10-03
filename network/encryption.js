@@ -36,8 +36,8 @@ Encryption.prototype.getDecryptor = function() {
 	return new EncryptionStream('d');
 };
 
-Encryption.prototype.validatePlayer = function(playerName, sharedSecret) {
-	return this.playerValidator.validate(playerName, sharedSecret);
+Encryption.prototype.validatePlayer = function(playerName, sharedSecret, callback) {
+	return this.playerValidator.validate(playerName, sharedSecret, callback);
 }
 
 module.exports = Encryption;

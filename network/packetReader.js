@@ -299,7 +299,7 @@ var PacketReader = function () {
     };
 
     parsers[0xCD] = function (binaryReader) {
-        console.log('Got Client Statuses'.cyan);
+        //console.log('Got Client Statuses'.cyan);
 
         var data = {
             type: binaryReader.readByte(),
@@ -323,7 +323,7 @@ var PacketReader = function () {
     };
 
     parsers[0xFC] = function (binaryReader) {
-        console.log('Got Encryption Key Response');
+        //console.log('Got Encryption Key Response');
 
         var data = {
             type: binaryReader.readByte(),

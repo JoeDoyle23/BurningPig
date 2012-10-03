@@ -32,8 +32,8 @@ Chunk.prototype.getBlock = function(index) {
 };
 
 Chunk.prototype.setBlock = function (index, blockData) {
-    console.log('index: %d', index);
-    console.log('blockType: %d', blockData.blockType);
+    //console.log('index: %d', index);
+    //console.log('blockType: %d', blockData.blockType);
     this.blocks[index] = blockData.blockType;
 
     blockData.metadata &= 0xF;

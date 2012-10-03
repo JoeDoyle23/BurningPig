@@ -7,15 +7,18 @@ function PlayerValidator(serverId, publicKeyASN) {
 	this.publicKeyASN = publicKeyASN;
 };
 
-PlayerValidator.prototype.validate = function(playerName, sharedSecret) {
+PlayerValidator.prototype.validate = function(playerName, sharedSecret, callback) {
 	var hash = sessionHash(this.serverId, sharedSecret, this.publicKeyASN);
 
-	var options = {
-		host: 'session.minecraft.net',
-		port: 80,
-		path: '/game/checkserver.jsp?user=' + playerName + '&serverId=' + hash,
-		method: 'GET'
-	};
-};
+	var url = 'http://session.minecraft.net/game/checkserver.jsp?user=' + playerName + '&serverId=' + hash;
+	
+	http.get(url, function(res) {
+		res.setEncoding('utf8');
+	    res.on('data', function (chunk) {
+		    //console.log('BODY: ' + chunk);
+	        callback(chunk);
+		});
+	});
+}
 
 module.exports = PlayerValidator;

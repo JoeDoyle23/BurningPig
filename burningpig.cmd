@@ -1,1 +1,1 @@
-nodemon -w ./ -w ./terrain -w ./network burningpig.js
+nodemon -w ./ -w ./terrain -w ./network -w ./util burningpig.js

@@ -2,6 +2,7 @@ var crypto = require('crypto');
 var util = require('util');
 
 var sessionHash = function (serverId, sharedSecret, publicKeyASN) {
+
     var sha = crypto.createHash('sha1');
     sha.update(serverId);
     sha.update(sharedSecret);
@@ -33,6 +34,7 @@ var sessionHash = function (serverId, sharedSecret, publicKeyASN) {
     }
 
     return hexString;
+
 }
 
 module.exports = sessionHash;

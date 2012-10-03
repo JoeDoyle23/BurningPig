@@ -22,7 +22,7 @@ function World() {
     this.nextEntityId = 1;
 
     this.encryption = new Encryption();
-    this.encryption.init();
+    this.encryption.init(new Buffer('BurningPig', 'ascii'));
     
     this.settings = require('./settings.json');
 

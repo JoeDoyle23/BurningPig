@@ -239,7 +239,7 @@ function PacketHandler(world) {
     };
 
     packetHandler[0xFC] = function (data, client) {
-        console.log('Got encryption response');
+        //console.log('Got encryption response');
 
         var token = world.encryption.decryptSharedSecret(data.token.toString('hex'));
         var secret = world.encryption.decryptSharedSecret(data.sharedSecret.toString('hex'));
@@ -253,11 +253,21 @@ function PacketHandler(world) {
             return;
         }
 
-        var encryptionAccepted = packetWriter.build(0xFC, {});
-        client.network.write(encryptionAccepted);
+        world.encryption.validatePlayer(client.handshakeData.username, new Buffer(secret, 'binary'), function(result) {
+            if(result==='YES') {
+                var encryptionAccepted = packetWriter.build(0xFC, {});
+                client.network.write(encryptionAccepted);
 
-        client.network.enableEncryption(secret);
-        client.decryptor.enableEncryption(secret);
+                client.network.enableEncryption(secret);
+                client.decryptor.enableEncryption(secret);                
+            } else {
+                var serverStatus = "Failed to verify username!";
+                var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
+
+                client.network.write(packet);
+                client.network.end();
+            }
+        });
     };
 
     packetHandler[0xFE] = function (data, client) {
