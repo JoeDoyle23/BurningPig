@@ -1,14 +1,16 @@
 ﻿var rsa = require("bignumber");
 var EncryptionStream = require('./encryptionStream');
+var PlayerValidator = require('../util/playerValidator');
 
 function Encryption() {
     this.key = new rsa.Key();
 };
 
-Encryption.prototype.init = function() {
+Encryption.prototype.init = function(serverId) {
     console.log('Generating RSA key...');
     this.key.generate(1024, "10001");
     this.buildASN();
+    this.playerValidator = new PlayerValidator(serverId, this.ASN);
 };
 
 Encryption.prototype.buildASN = function() {
@@ -33,5 +35,9 @@ Encryption.prototype.getEncryptor = function() {
 Encryption.prototype.getDecryptor = function() {
 	return new EncryptionStream('d');
 };
+
+Encryption.prototype.validatePlayer = function(playerName, sharedSecret) {
+	return this.playerValidator.validate(playerName, sharedSecret);
+}
 
 module.exports = Encryption;

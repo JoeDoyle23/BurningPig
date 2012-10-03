@@ -1,4 +1,4 @@
-﻿var BinaryReader = require('./beConverters').BinaryReader,
+﻿var BinaryReader = require('../util/binaryReader'),
     util = require('util');
 
 var PacketReader = function () {

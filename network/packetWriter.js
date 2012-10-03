@@ -1,4 +1,4 @@
-﻿var BinaryWriter = require('./beConverters').BinaryWriter;
+﻿var BinaryWriter = require('../util/binaryWriter');
 
 var PacketWriter = function() {
   var self = this;

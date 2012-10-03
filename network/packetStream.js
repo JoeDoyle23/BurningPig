@@ -2,7 +2,7 @@
     Stream = require('stream').Stream,
     PacketReader = require('./packetReader');
 
-function PacketParser(client) {
+function PacketStream(client) {
     Stream.call(this);
     this.writable = true;
     this.readable = true;
@@ -10,9 +10,9 @@ function PacketParser(client) {
     this.packetReader = new PacketReader();
 };
 
-util.inherits(PacketParser, Stream);
+util.inherits(PacketStream, Stream);
 
-PacketParser.prototype.write = function (data, encoding) {
+PacketStream.prototype.write = function (data, encoding) {
     var self = this;
 
     var allData = Buffer.concat([self.partialData, data], self.partialData.length + data.length);
@@ -48,18 +48,18 @@ PacketParser.prototype.write = function (data, encoding) {
     } while (allData.length > 0)
 };
 
-PacketParser.prototype.end = function () {
+PacketStream.prototype.end = function () {
     this.emit('data', { data: 'end', client: this.client });
 };
 
-PacketParser.prototype.error = function (exception) {
+PacketStream.prototype.error = function (exception) {
     this.emit('data', { data: 'exception', client: this.client, exception: exception });
 };
 
-PacketParser.prototype.destroy = function () {
+PacketStream.prototype.destroy = function () {
     this.emit('data', { data: 'destroy', client: this.client });
 };
 
-PacketParser.prototype.partialData = new Buffer(0);
+PacketStream.prototype.partialData = new Buffer(0);
 
-module.exports = PacketParser;
+module.exports = PacketStream;

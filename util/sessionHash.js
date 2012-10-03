@@ -1,10 +1,11 @@
 var crypto = require('crypto');
 var util = require('util');
 
-var sessionHash = function (session, value) {
+var sessionHash = function (serverId, sharedSecret, publicKeyASN) {
     var sha = crypto.createHash('sha1');
-    sha.update(session);
-    sha.update(value);
+    sha.update(serverId);
+    sha.update(sharedSecret);
+    sha.update(publicKeyASN);
 
     var hexString = sha.digest('hex');
     
@@ -27,11 +28,11 @@ var sessionHash = function (session, value) {
             
             newString += qq.toString(16).slice(1);
         }
-        console.log(newString);
-        return;
+        //console.log(newString);
+        return newString;
     }
 
-    console.log(hexString);
+    return hexString;
 }
 
 module.exports = sessionHash;
