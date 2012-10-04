@@ -174,7 +174,6 @@ World.prototype.removePlayerFromList = function (id) {
     var client = this.findPlayer(id);
     if (client) {
         var clientEntityId = client.player.entityId;
-        console.log('Entity: %d', clientEntityId);
         this.players.splice(client.index, 1);
         this.removeEntities([clientEntityId]);
         if (this.players.length > 0) {
@@ -228,7 +227,7 @@ World.prototype.removeEntities = function(entityIdArray) {
         entityIds: entityIdArray
     });
 
-    console.log(self.entities.length);
+    //console.log(self.entities.length);
 
 
     this.sendToAllPlayers(packet);

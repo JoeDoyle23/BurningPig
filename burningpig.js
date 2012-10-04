@@ -6,6 +6,7 @@ console.log('Lighting up the BurningPig!'.bold);
     
 var world = new World();
 world.loadSettings();
+world.setMaxListeners(0);
 
 var server = TcpServer(world);
 server.listen(world.settings.listenPort);

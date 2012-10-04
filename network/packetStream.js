@@ -22,7 +22,7 @@ PacketStream.prototype.write = function (data, encoding) {
             var packet = self.packetReader.parse(allData);
 
             if (packet.error) {
-                console.log(packet.error);
+                //console.log(packet.error);
                 //throw { message: packet.err };
             }
 

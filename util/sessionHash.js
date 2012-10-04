@@ -3,38 +3,40 @@ var util = require('util');
 
 var sessionHash = function (serverId, sharedSecret, publicKeyASN) {
 
+    var twosCompliment = function(hash)
+        {
+            var carry = true;
+            for (var i = hash.length - 1; i >= 0; i--) {
+                hash[i] = ((~hash[i]) & 0xFF);
+                if (carry) {
+                    carry = hash[i] == 0xFF;
+                    hash[i]++;
+                }
+            }
+            return hash;
+        }
+
     var sha = crypto.createHash('sha1');
     sha.update(serverId);
     sha.update(sharedSecret);
     sha.update(publicKeyASN);
 
-    var hexString = sha.digest('hex');
-    
-    if ((parseInt(hexString[0]) & 8) === 8) {
-        var newString = '-';
-        for (var i = 0; i < hexString.length; i += 2) {
-            var n = hexString.slice(i, i + 2);
-            var nn = parseInt(n, 16);
-            var qq = ((~nn) & 0xFF);
+    var computedHash = new Buffer(sha.digest(), 'binary');
+    var hashString = '', minusSign = '';
 
-            if (qq.toString(16).length === 1) {
-                newString += '0';
-            }
-
-            newString += qq.toString(16).slice(0, 1);
-
-            if (i === (hexString.length - 2)) {
-                qq++;
-            }
-            
-            newString += qq.toString(16).slice(1);
-        }
-        //console.log(newString);
-        return newString;
+    if ((computedHash[0] & 0x80) === 0x80) {
+        minusSign = '-';       
+        hashString = twosCompliment(computedHash).toString('hex');
+    } else {
+        hashString = computedHash.toString('hex');
     }
 
-    return hexString;
+    while(hashString[0]==='0') {
+        hashString = hashString.slice(1);
+    }
 
+    console.log('hash: ' + minusSign + hashString);
+    return minusSign + hashString;
 }
 
 module.exports = sessionHash;
