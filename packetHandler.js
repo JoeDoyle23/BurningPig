@@ -1,7 +1,8 @@
 ﻿var util = require('util')
   , crypto = require('crypto')
   , PacketWriter = require('./network/packetWriter')
-  , Player = require('./player');
+  , Player = require('./player')
+  , blockDrops = require('./blockMapping');
   
 function PacketHandler(world) {
 
@@ -143,17 +144,37 @@ function PacketHandler(world) {
 
             var digGood = client.player.validateDigging(data);
 
-            
-            world.terrain.setBlock({ x: data.x, y: data.y, z: data.z }, { blockType: 0, metadata: 0, light: 0, skylight: 0xFF });
+            var blockPosition = { x: data.x, y: data.y, z: data.z };
+            console.log(blockPosition);
+            var dugBlock = world.terrain.getBlock(blockPosition);
 
-            var packet = packetWriter.build(0x35, {
+            var digResult = blockDrops[dugBlock.blockType];
+
+            world.terrain.setBlock(blockPosition, { blockType: 0, metadata: 0, light: 0, skylight: 0xFF });
+
+            var dugPacket = packetWriter.build(0x35, {
                 x: data.x,
                 y: data.y,
                 z: data.z,
                 blockType: 0,
                 blockMetadata: 0
             });
-            world.sendToAllPlayers(packet);
+
+            var spawnEntity = packetWriter.build(0x15, {
+                entityId: world.nextEntityId++,
+                itemId: digResult.itemId,
+                count: digResult.count,
+                data: 0,
+                x: (blockPosition.x + 0.5) * 32,
+                y: (blockPosition.y + 0.5) * 32,
+                z: (blockPosition.z + 0.5) * 32,
+                rotation: 0,
+                pitch: 0,
+                roll: 0
+            });
+
+            world.sendToAllPlayers(dugPacket);
+            world.sendToAllPlayers(spawnEntity);
         }
     };
 
