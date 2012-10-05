@@ -73,7 +73,7 @@ var BinaryWriter = function(buffer, start) {
   };
 
   self.writeSlot = function (data) {
-      buffer.write(Int16BE(data.blockId, cursor.pos));
+      buffer.writeInt16BE(data.blockId, cursor.pos);
       cursor.pos += 2;
 
       if (data.blockId === -1) {

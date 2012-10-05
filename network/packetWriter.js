@@ -42,11 +42,12 @@ var PacketWriter = function() {
   };
 
   builders[0x04] = function (data) {
-      var packet = new Buffer(9);
+      var packet = new Buffer(17);
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x04);
       binaryWriter.writeArray(data.time);
+      binaryWriter.writeArray(data.daytime);
 
       return packet;
   };
@@ -56,7 +57,7 @@ var PacketWriter = function() {
       if (data.item.blockId !== -1) {
           size += 6;
       };
-      if (data.item.metaData || data.item.metaData.length !== -1) {
+      if (data.item.metaData !== undefined && data.item.metaData.length !== -1) {
           size += data.item.metaData.length;
       }
       var packet = new Buffer(size);
@@ -153,7 +154,7 @@ var PacketWriter = function() {
   };
 
   builders[0x15] = function (data) {
-      var packet = new Buffer(25);
+      var packet = new Buffer(27);
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x15);
@@ -161,6 +162,7 @@ var PacketWriter = function() {
       binaryWriter.writeShort(data.itemId);
       binaryWriter.writeByte(data.count);
       binaryWriter.writeShort(data.data);
+      binaryWriter.writeShort(-1);
       binaryWriter.writeInt(data.x);
       binaryWriter.writeInt(data.y);
       binaryWriter.writeInt(data.z);

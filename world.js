@@ -62,10 +62,14 @@ World.prototype.startTimeAndClients = function () {
         if (timeLow & 0xFFFF === 0) {
             timeHigh++;
         }
-        self.worldTime.writeUInt32BE(timeHigh, 0, 4);
-        self.worldTime.writeUInt32BE(timeLow, 4, 4);
+        self.worldTime.writeUInt32BE(timeHigh, 0);
+        self.worldTime.writeUInt32BE(timeLow, 4);
 
-        var time = self.packetWriter.build(0x04, { time: self.worldTime });
+        var dayTime = new Buffer(8);
+        dayTime.fill(0);
+        dayTime.writeUInt16BE(timeLow % 24000, 6);
+
+        var time = self.packetWriter.build(0x04, { time: self.worldTime, daytime: dayTime });
 
         var packetLength = 0;
         
@@ -75,7 +79,7 @@ World.prototype.startTimeAndClients = function () {
             var clientlist = self.packetWriter.build(0xC9, {
                 playerName: client.player.name,
                 online: true,
-                ping:  cPing > 0xFFFF ? 0xFFFF : cPing
+                ping:  cPing > 0x7FFF ? 0x7FFF : cPing
             });
             self.sendToAllPlayers(clientlist);
         });
@@ -191,9 +195,9 @@ World.prototype.removePlayerFromList = function (id) {
 };
 
 World.prototype.protocolCheck = function(protocol, client) {
-    if (protocol !== 39) {
+    if (protocol !== 44) {
         console.log("The client sent a protocol id we don't support: %d".red, protocol);
-        var kick = this.packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.3.2 to use this server!' });
+        var kick = this.packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.4.0 to use this server!' });
         client.network.write(kick);
         client.network.end();
         return false;
