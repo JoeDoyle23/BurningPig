@@ -292,7 +292,8 @@ var PacketReader = function () {
             locale: binaryReader.readString(),
             viewDistance: binaryReader.readByte(),
             chatFlags: binaryReader.readByte(),
-            difficulty: binaryReader.readByte()
+            difficulty: binaryReader.readByte(),
+            showCape: binaryReader.readBool()
         };
 
         return data;

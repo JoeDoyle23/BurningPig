@@ -195,7 +195,7 @@ World.prototype.removePlayerFromList = function (id) {
 };
 
 World.prototype.protocolCheck = function(protocol, client) {
-    if (protocol !== 44) {
+    if (protocol !== 46) {
         console.log("The client sent a protocol id we don't support: %d".red, protocol);
         var kick = this.packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.4.0 to use this server!' });
         client.network.write(kick);
