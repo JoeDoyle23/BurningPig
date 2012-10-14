@@ -136,6 +136,13 @@ Player.prototype.validateDigging = function (digInfo) {
 
     //TODO: really validate digging based on tool and block
 
+    if(this.digging.x !== digInfo.x ||
+       this.digging.y !== digInfo.y ||
+       this.digging.z !== digInfo.z ||
+       this.digging.face !== digInfo.face) {
+        return false;
+    }
+
     return true;
 };
 

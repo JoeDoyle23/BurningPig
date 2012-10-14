@@ -7,19 +7,15 @@ var PacketReader = function () {
     var parsers = [];
 
     parsers[0x00] = function (binaryReader) {
-        //console.log('Got keepalive'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             keepAliveId: binaryReader.readInt()
         };
 
-        return data;
+        return { type: 'keepalive', data: data };
     };
 
     parsers[0x02] = function (binaryReader) {
-        //console.log('Got handshake'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             protocol: binaryReader.readByte(),
@@ -28,23 +24,19 @@ var PacketReader = function () {
             serverPort: binaryReader.readInt()
         };
 
-        return data;
+        return { type: 'handshake', data: data };
     };
 
     parsers[0x03] = function (binaryReader) {
-        //console.log('Got chat message'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             message: binaryReader.readString()
         };
 
-        return data;
+        return { type: 'chat_message', data: data };
     };
 
     parsers[0x07] = function (binaryReader) {
-        //console.log('Got use entity'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             user: binaryReader.readInt(),
@@ -52,23 +44,19 @@ var PacketReader = function () {
             mouseButton: binaryReader.readBool()
         };
 
-        return data;
+        return { type: 'use_entity', data: data };
     };
 
     parsers[0x0A] = function (binaryReader) {
-        //console.log('Got Player Status'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             onGround: binaryReader.readBool(),
         };
 
-        return data;
+        return { type: 'player_base', data: data };
     };
 
     parsers[0x0B] = function (binaryReader) {
-        //console.log('Got Player Position'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             x: binaryReader.readDouble(),
@@ -78,12 +66,10 @@ var PacketReader = function () {
             onGround: binaryReader.readBool(),
         };
 
-        return data;
+        return { type: 'player_position', data: data };
     };
 
     parsers[0x0C] = function (binaryReader) {
-        //console.log('Got Player Look');
-
         var data = {
             type: binaryReader.readByte(),
             yaw: binaryReader.readFloat(),
@@ -91,12 +77,10 @@ var PacketReader = function () {
             onGround: binaryReader.readBool(),
         };
 
-        return data;
+        return { type: 'player_look', data: data };
     };
 
     parsers[0x0D] = function (binaryReader) {
-        //console.log('Got Player Position & Look'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             x: binaryReader.readDouble(),
@@ -108,12 +92,10 @@ var PacketReader = function () {
             onGround: binaryReader.readBool(),
         };
 
-        return data;
+        return { type: 'player_position_look', data: data };
     };
 
     parsers[0x0E] = function (binaryReader) {
-        //console.log('Got Player Digging');
-
         var data = {
             type: binaryReader.readByte(),
             status: binaryReader.readByte(),
@@ -123,12 +105,10 @@ var PacketReader = function () {
             face: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'player_digging', data: data };
     };
 
     parsers[0x0F] = function (binaryReader) {
-        //console.log('Got Player Block Placement');
-
         var data = {
             type: binaryReader.readByte(),
             x: binaryReader.readInt(),
@@ -141,58 +121,48 @@ var PacketReader = function () {
             cursorZ: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'player_block_placement', data: data };
     };
 
     parsers[0x10] = function (binaryReader) {
-        //console.log('Got Player Held Item Changed');
-
         var data = {
             type: binaryReader.readByte(),
             slotId: binaryReader.readShort(),
         };
 
-        return data;
+        return { type: 'held_item_change', data: data };
     };
 
     parsers[0x12] = function (binaryReader) {
-        //console.log('Got Animation');
-
         var data = {
             type: binaryReader.readByte(),
             entityId: binaryReader.readInt(),
             animation: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'animation', data: data };
     };
 
     parsers[0x13] = function (binaryReader) {
-        //console.log('Got Entity Action');
-
         var data = {
             type: binaryReader.readByte(),
             entityId: binaryReader.readInt(),
             action: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'entity_action', data: data };
     };
 
     parsers[0x65] = function (binaryReader) {
-        //console.log('Got Close Window');
-
         var data = {
             type: binaryReader.readByte(),
             windowId: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'close_window', data: data };
     };
 
     parsers[0x66] = function (binaryReader) {
-        //console.log('Got Click Window');
-
         var data = {
             type: binaryReader.readByte(),
             windowId: binaryReader.readByte(),
@@ -203,12 +173,10 @@ var PacketReader = function () {
             clickedItem: binaryReader.readSlot(),
         };
 
-        return data;
+        return { type: 'click_window', data: data };
     };
 
     parsers[0x6A] = function (binaryReader) {
-        console.log('Got Confirm Transaction');
-
         var data = {
             type: binaryReader.readByte(),
             windowId: binaryReader.readByte(),
@@ -216,36 +184,30 @@ var PacketReader = function () {
             accepted: binaryReader.readBool(),
         };
 
-        return data;
+        return { type: 'confirm_transaction', data: data };
     };
 
     parsers[0x6B] = function (binaryReader) {
-        console.log('Got Create Inventory Action');
-
         var data = {
             type: binaryReader.readByte(),
             slot: binaryReader.readShort(),
             clickedItem: binaryReader.readSlot(),
         };
 
-        return data;
+        return { type: 'creative_inventory_action', data: data };
     };
 
     parsers[0x6C] = function (binaryReader) {
-        console.log('Got Enchant Item');
-
         var data = {
             type: binaryReader.readByte(),
             windowId: binaryReader.readByte(),
             enchantment: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'enchant_item', data: data };
     };
 
     parsers[0x82] = function (binaryReader) {
-        console.log('Got Update Sign');
-
         var data = {
             type: binaryReader.readByte(),
             x: binaryReader.readInt(),
@@ -257,12 +219,10 @@ var PacketReader = function () {
             text4: binaryReader.readString(),
         };
 
-        return data;
+        return { type: 'update_sign', data: data };
     };
 
     parsers[0xCA] = function (binaryReader) {
-        console.log('Got Player Abilities');
-
         var data = {
             type: binaryReader.readByte(),
             flags: binaryReader.readByte(),
@@ -270,23 +230,19 @@ var PacketReader = function () {
             walkingSpeed: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'player_abilities', data: data };
     };
 
     parsers[0xCB] = function (binaryReader) {
-        console.log('Got Tab Complete');
-
         var data = {
             type: binaryReader.readByte(),
             text: binaryReader.readString(),
         };
 
-        return data;
+        return { type: 'tab_complete', data: data };
     };
 
     parsers[0xCC] = function (binaryReader) {
-        console.log('Got Locale and View Distance'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             locale: binaryReader.readString(),
@@ -296,18 +252,16 @@ var PacketReader = function () {
             showCape: binaryReader.readBool()
         };
 
-        return data;
+        return { type: 'locale_view_distance', data: data };
     };
 
     parsers[0xCD] = function (binaryReader) {
-        //console.log('Got Client Statuses'.cyan);
-
         var data = {
             type: binaryReader.readByte(),
             payload: binaryReader.readByte(),
         };
 
-        return data;
+        return { type: 'client_statuses',  data: data };
     };
 
     parsers[0xFA] = function (binaryReader) {
@@ -320,12 +274,10 @@ var PacketReader = function () {
             data: binaryReader.readArray(),
         };
 
-        return data;
+        return { type: 'plugin_message', data: data };
     };
 
     parsers[0xFC] = function (binaryReader) {
-        //console.log('Got Encryption Key Response');
-
         var data = {
             type: binaryReader.readByte(),
             sharedSecretLength: binaryReader.readShort(),
@@ -335,22 +287,21 @@ var PacketReader = function () {
         data.tokenLength = binaryReader.readShort();
         data.token = binaryReader.readArray(data.tokenLength);
 
-        return data;
+        return { type: 'encryption_response', data: data };
     };
 
     parsers[0xFE] = function (binaryReader) {
-        console.log('Got Server Ping Packet!'.cyan);
-        return { type: binaryReader.readByte() };
+        var data = { type: binaryReader.readByte() };
+
+        return { type: 'server_list_ping', data: data };
     };
 
     parsers[0xFF] = function (binaryReader) {
-        console.log('Got Disconnect/Kick'.cyan);
-
         var data = {
             reason: binaryReader.readString(),
         };
 
-        return data;
+        return { type : 'disconnect', data: data };
     };
 
     self.parse = function (inputBuffer) {

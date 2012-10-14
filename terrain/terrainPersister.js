@@ -77,7 +77,7 @@ TerrainPersister.prototype.loadTerrainColumn = function (x, z, callback) {
 
 TerrainPersister.prototype.saveTerrainColumn = function (column) {
     var self = this;
-    console.log('Saving column: %d, %d', column.x, column.z);
+    console.log('Saving column: %d, %d'.yellow, column.x, column.z);
 
     var indexEntry = self.terrainDataIndex[util.format('%d~%d', column.x, column.z)];
     var terrainFile = fs.createWriteStream('./levels/testWorld.terrain', { flags: 'r+', start: indexEntry.position });

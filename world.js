@@ -1,240 +1,278 @@
-﻿var util = require('util');
-var Stream = require('stream').Stream;
-var crypto = require('crypto');
-var Terrain = require('./terrain/terrain');
-var PacketHandler = require('./packetHandler');
-var PacketWriter = require('./network/packetWriter');
-var Player = require('./player');
-var Encryption = require('./network/encryption');
+﻿var util = require('util'),
+    crypto = require('crypto'),
+    Terrain = require('./terrain/terrain'),
+    PacketRouter = require('./packetRouter'),
+    PacketWriter = require('./network/packetWriter'),
+    Encryption = require('./network/encryption'),
+    Player = require('./player');
 
 function World() {
     var self = this;
-    Stream.call(this);
-    this.writable = true;
-    this.readable = true;
-    this.worldTime = new Buffer(8);
-    this.worldTime.fill(0);
-    this.players = [];
-    this.terrain = new Terrain();
-    this.packetHandler = new PacketHandler(self);
-    this.packetWriter = new PacketWriter();
-    this.entities = {};
-    this.nextEntityId = 1;
+    self.writable = true;
+    self.readable = true;
+    self.worldTime = new Buffer(8);
+    self.worldTime.fill(0);
+    self.players = [];
+    self.terrain = new Terrain();
+    self.packetRouter = new PacketRouter(self);
+    self.encryption = new Encryption();
+    self.encryption.init(new Buffer('BurningPig', 'ascii'));
 
-    this.encryption = new Encryption();
-    this.encryption.init(new Buffer('BurningPig', 'ascii'));
+    var packetWriter = new PacketWriter();
     
-    this.settings = require('./settings.json');
+    self.entities = {};
+    self.nextEntityId = 1;
 
-    this.startKeepAlives();
-    this.startTimeAndClients();
-};
+    self.startKeepAlives = function () {
 
-util.inherits(World, Stream);
+        self.keepAliveTimer = setInterval(function () {
+            if (self.players.length === 0) {
+                return;
+            }
 
-World.prototype.startKeepAlives = function () {
-    var self = this;
+            self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
+            var ka = { keepAliveId: self.lastKeepAlive };
 
-    this.keepAliveTimer = setInterval(function () {
-        if (self.players.length === 0) {
+            self.players.forEach(function (client, idx) {
+                client.player.pingTimer = process.hrtime();
+            });
+
+            var keepAlivePacket = packetWriter.build(0x00, ka);
+            self.sendToAllPlayers(keepAlivePacket);
+
+        }, 1000);
+    };
+
+    self.startTimeAndClients = function () {
+        self.timeTimer = setInterval(function () {
+            var timeHigh = self.worldTime.readUInt32BE(0, 4);
+            var timeLow = self.worldTime.readUInt32BE(4, 4) + 1;
+            if (timeLow & 0xFFFF === 0) {
+                timeHigh++;
+            }
+            self.worldTime.writeUInt32BE(timeHigh, 0);
+            self.worldTime.writeUInt32BE(timeLow, 4);
+
+            var dayTime = new Buffer(8);
+            dayTime.fill(0);
+            dayTime.writeUInt16BE(timeLow % 24000, 6);
+
+            var time = packetWriter.build(0x04, { time: self.worldTime, daytime: dayTime });
+
+            var packetLength = 0;
+            
+            self.players.forEach(function (client, idx) {
+                var cPing = client.player.getPing();
+
+                var clientlist = packetWriter.build(0xC9, {
+                    playerName: client.player.name,
+                    online: true,
+                    ping:  cPing > 0x7FFF ? 0x7FFF : cPing
+                });
+                self.sendToAllPlayers(clientlist);
+            });
+
+            self.sendToAllPlayers(time);
+        }, 50);
+    };
+
+    self.write = function (data, encoding) {
+        if (data.data === 'end') {
+            self.removePlayerFromList(data.client.id);
+            console.log('Connection closed!'.red);
             return;
         }
 
-        self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
-        var ka = { keepAliveId: self.lastKeepAlive };
-
-        self.players.forEach(function (client, idx) {
-            client.player.pingTimer = process.hrtime();
-        });
-
-        var keepAlivePacket = self.packetWriter.build(0x00, ka);
-        self.sendToAllPlayers(keepAlivePacket);
-
-    }, 1000);
-};
-
-World.prototype.startTimeAndClients = function () {
-    var self = this;
-
-    this.timeTimer = setInterval(function () {
-        var timeHigh = self.worldTime.readUInt32BE(0, 4);
-        var timeLow = self.worldTime.readUInt32BE(4, 4) + 1;
-        if (timeLow & 0xFFFF === 0) {
-            timeHigh++;
+        if (data.data === 'exception') {
+            self.removePlayerFromList(data.client.id);
+            console.log('Socket Exception: '.red + data.exception);
+            data.client.network.end();
+            return;
         }
-        self.worldTime.writeUInt32BE(timeHigh, 0);
-        self.worldTime.writeUInt32BE(timeLow, 4);
 
-        var dayTime = new Buffer(8);
-        dayTime.fill(0);
-        dayTime.writeUInt16BE(timeLow % 24000, 6);
+        if (data.data === 'destroyed') {
+            self.removePlayerFromList(data.client.id);
+            console.log('Connection destroyed!'.red);
+            data.client.network.end();
+            return;
+        }
 
-        var time = self.packetWriter.build(0x04, { time: self.worldTime, daytime: dayTime });
+        //self.packetRouter.process(data);
+    };
 
-        var packetLength = 0;
-        
-        self.players.forEach(function (client, idx) {
-            var cPing = client.player.getPing();
+    self.loadSettings = function () {
+        //TODO: check for file first and load defaults if not there.
+        self.settings = require('./settings.json');
+    };
 
-            var clientlist = self.packetWriter.build(0xC9, {
-                playerName: client.player.name,
-                online: true,
-                ping:  cPing > 0x7FFF ? 0x7FFF : cPing
-            });
-            self.sendToAllPlayers(clientlist);
-        });
+    self.setupListeners = function(packetStream) {
+        packetStream.on('keepalive', self.keepAlive);
+        packetStream.on('handshake', self.packetRouter.handShake);
+        packetStream.on('chat_message', self.packetRouter.chatMessage);
+        packetStream.on('use_entity', self.packetRouter.useEntity);
+        packetStream.on('player_base', self.packetRouter.playerBase);
+        packetStream.on('player_position', self.packetRouter.playerPosition);
+        packetStream.on('player_look', self.packetRouter.playerLook);
+        packetStream.on('player_position_look', self.packetRouter.playerPositionLook);
+        packetStream.on('player_digging', self.packetRouter.playerDigging);
+        packetStream.on('player_block_placement', self.packetRouter.playerBlockPlacement);
+        packetStream.on('held_item_change', self.packetRouter.heldItemChange);
+        packetStream.on('animation', self.packetRouter.animation);
+        packetStream.on('entity_action', self.packetRouter.entityAction);
+        packetStream.on('close_window', self.packetRouter.closeWindow);
+        packetStream.on('click_window', self.packetRouter.clickWindow);
+        packetStream.on('confirm_transaction', self.packetRouter.confirmTransaction);
+        packetStream.on('creative_inventory_action', self.packetRouter.creativeInventoryAction);
+        packetStream.on('enchant_item', self.packetRouter.enchantItem);
+        packetStream.on('update_sign', self.packetRouter.updateSign);
+        packetStream.on('player_abilities', self.packetRouter.playerAbilities);
+        packetStream.on('tab_complete', self.packetRouter.tabComplete);
+        packetStream.on('locale_view_distance', self.packetRouter.localeViewDistance);
+        packetStream.on('client_statuses', self.packetRouter.clientStatuses);
+        packetStream.on('plugin_message', self.packetRouter.pluginMessage);
+        packetStream.on('encryption_response', self.packetRouter.encryptionResponse);
+        packetStream.on('server_list_ping', self.serverListPing);
+        packetStream.on('disconnect', self.packetRouter.disconnect);
+    };
 
-        self.sendToAllPlayers(time);
-    }, 50);
-};
-
-World.prototype.write = function (data, encoding) {
-    if (data.data === 'end') {
-        this.removePlayerFromList(data.client.id);
-        console.log('Connection closed!'.red);
-        return;
-    }
-
-    if (data.data === 'exception') {
-        this.removePlayerFromList(data.client.id);
-        console.log('Socket Exception: '.red + data.exception);
-        data.client.network.end();
-        return;
-    }
-
-    if (data.data === 'destroyed') {
-        this.removePlayerFromList(data.client.id);
-        console.log('Connection destroyed!'.red);
-        data.client.network.end();
-        return;
-    }
-
-    this.packetHandler.process(data);
-};
-
-World.prototype.end = function (client) {
-    this.emit('end');
-};
-
-World.prototype.error = function () {
-    this.emit('error');
-};
-
-World.prototype.destroy = function (client) {
-    this.emit('destroy');
-};
-
-World.prototype.loadSettings = function () {
-
-};
-
-World.prototype.sendToAllPlayers = function (packet) {
-    this.players.forEach(function (client, idx) {
+    self.sendPacket = function(client, packet) {
         client.network.write(packet);
-    });
-};
+    };
 
-World.prototype.sendToOtherPlayers = function (packet, sourcePlayer) {
-    this.players.forEach(function (client, idx) {
-        if (sourcePlayer.id !== client.id) {
+    self.sendToAllPlayers = function (packet) {
+        self.players.forEach(function (client, idx) {
             client.network.write(packet);
-        }
-    });
-};
-World.prototype.sendEntitiesToPlayer = function(targetPlayer) {
-    var self = this;
-    for (var entityId in this.entities) {
-        if (this.entities.hasOwnProperty(entityId)) {
-            var entity = this.entities[entityId];
-            if (targetPlayer.player.entityId !== entity.entityId) {
-                var absolutePosition = entity.getAbsolutePosition();
-                var namedEntity = self.packetWriter.build(0x14, {
-                    entityId: entity.entityId,
-                    playerName: entity.name,
-                    x: absolutePosition.x,
-                    y: absolutePosition.y,
-                    z: absolutePosition.z,
-                    yaw: absolutePosition.yaw,
-                    pitch: absolutePosition.pitch,
-                    currentItem: 0
-                });
-                targetPlayer.network.write(namedEntity);
+        });
+    };
+
+    self.sendToOtherPlayers = function (packet, sourcePlayer) {
+        self.players.forEach(function (client, idx) {
+            if (sourcePlayer.id !== client.id) {
+                client.network.write(packet);
+                client.network.write(packet);
+            }
+        });
+    };
+    self.sendEntitiesToPlayer = function(targetPlayer) {
+        var self = this;
+        for (var entityId in self.entities) {
+            if (self.entities.hasOwnProperty(entityId)) {
+                var entity = self.entities[entityId];
+                if (targetPlayer.player.entityId !== entity.entityId) {
+                    var absolutePosition = entity.getAbsolutePosition();
+                    var namedEntity = packetWriter.build(0x14, {
+                        entityId: entity.entityId,
+                        playerName: entity.name,
+                        x: absolutePosition.x,
+                        y: absolutePosition.y,
+                        z: absolutePosition.z,
+                        yaw: absolutePosition.yaw,
+                        pitch: absolutePosition.pitch,
+                        currentItem: 0
+                    });
+                    targetPlayer.network.write(namedEntity);
+                }
             }
         }
-    }
-};
+    };
 
-World.prototype.findPlayer = function(id) {
-    for(var i=0;i<this.players.length;i++) {
-        if (this.players[i].id === id) {
-            var player = this.players[i];
-            player.index = i;
-            return player;
+    self.findPlayer = function(id) {
+        for(var i=0;i<self.players.length;i++) {
+            if (self.players[i].id === id) {
+                var player = self.players[i];
+                player.index = i;
+                return player;
+            }
         }
-    }
-};
+    };
 
-World.prototype.removePlayerFromList = function (id) {
-    var client = this.findPlayer(id);
-    if (client) {
-        var clientEntityId = client.player.entityId;
-        this.players.splice(client.index, 1);
-        this.removeEntities([clientEntityId]);
-        if (this.players.length > 0) {
-          var leavingChat = this.packetWriter.build(0x03, { message: client.player.name + ' (' + client.id + ') has left the world!' });
-          var clientlist = this.packetWriter.build(0xC9, {
-              playerName: client.player.name,
-              online: false,
-              ping: 0
-          });
+    self.removePlayerFromList = function (id) {
+        var client = self.findPlayer(id);
+        if (client) {
+            var clientEntityId = client.player.entityId;
+            self.players.splice(client.index, 1);
+            self.removeEntities([clientEntityId]);
+            if (self.players.length > 0) {
+              var leavingChat = packetWriter.build(0x03, { message: client.player.name + ' (' + client.id + ') has left the world!' });
+              var clientlist = packetWriter.build(0xC9, {
+                  playerName: client.player.name,
+                  online: false,
+                  ping: 0
+              });
 
-          this.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length + leavingChat.length));
+              self.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length + leavingChat.length));
+            }
+            return;
         }
-        return;
-    }
-};
+    };
 
-World.prototype.protocolCheck = function(protocol, client) {
-    if (protocol !== 46) {
-        console.log("The client sent a protocol id we don't support: %d".red, protocol);
-        var kick = this.packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.4.0 to use this server!' });
-        client.network.write(kick);
+    self.protocolCheck = function(protocol, client) {
+        if (protocol !== 46) {
+            console.log("The client sent a protocol id we don't support: %d".red, protocol);
+            var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.4.0 to use this server!' });
+            client.network.write(kick);
+            client.network.end();
+            return false;
+        }
+
+        return true;
+    };
+
+    self.serverFullCheck = function (client) {
+        if (self.players.length === self.settings.maxPlayers) {
+            console.log("The server is full!".red);
+            var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, the server is full.' });
+            client.network.write(kick);
+            client.network.end();
+            return false;
+        }
+
+        return true;
+    };
+
+    self.removeEntities = function(entityIdArray) {
+        var self = this;
+
+        entityIdArray.forEach(function (entityId, idx) {
+            if (self.entities.hasOwnProperty(entityId)) {
+                delete self.entities[entityId];
+            }
+        });
+
+        var packet = packetWriter.build(0x1D, {
+            entityIds: entityIdArray
+        });
+
+        //console.log(self.entities.length);
+
+
+        self.sendToAllPlayers(packet);
+    };
+
+    self.serverListPing = function (data, client) {
+        var serverStatus = self.settings.serverName + '§' + self.players.length + '§' + self.settings.maxPlayers;
+        var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
+
+        client.network.write(packet);
         client.network.end();
-        return false;
-    }
+    };
 
-    return true;
-};
+    self.keepAlive = function (data, client) {
+        if (client.closed)
+            return;
 
-World.prototype.serverFullCheck = function (client) {
-    if (this.players.length === this.settings.maxPlayers) {
-        console.log("The server is full!".red);
-        var kick = this.packetWriter.build(0xFF, { serverStatus: 'Sorry, the server is full.' });
-        client.network.write(kick);
-        client.network.end();
-        return false;
-    }
+        client.player.rawping = process.hrtime(client.player.pingTimer);
 
-    return true;
-};
-
-World.prototype.removeEntities = function(entityIdArray) {
-    var self = this;
-
-    entityIdArray.forEach(function (entityId, idx) {
-        if (self.entities.hasOwnProperty(entityId)) {
-            delete self.entities[entityId];
+        if (data.keepAliveId === 0) {
+            return;
         }
-    });
 
-    var packet = this.packetWriter.build(0x1D, {
-        entityIds: entityIdArray
-    });
-
-    //console.log(self.entities.length);
-
-
-    this.sendToAllPlayers(packet);
+        if (self.lastKeepAlive != data.keepAliveId) {
+            console.log('Id: %d - Client sent bad KeepAlive: should have been: %d - was: %d'.red, client.id, client.lastKeepAlive, data.keepAliveId);
+            var kick = packetWriter.build(0xFF, { serverStatus: 'Bad response to Keep Alive!' });
+            client.network.write(kick);
+            client.network.end();
+        }
+    };
 };
-
 module.exports = World;

@@ -1,40 +1,26 @@
-﻿var util = require('util')
-  , crypto = require('crypto')
-  , PacketWriter = require('./network/packetWriter')
-  , Player = require('./player')
-  , blockDrops = require('./blockMapping');
+﻿var util = require('util'),
+    crypto = require('crypto'),
+    EventEmitter = require('events').EventEmitter,
+    PacketWriter = require('./network/packetWriter'),
+    Player = require('./player'),
+    blockDrops = require('./blockMapping'),
+    CommandHandler = require('./CommandHandler');
   
-function PacketHandler(world) {
+function PacketRouter(world) {
+    EventEmitter.call(this);
+    this.world = world;
 
-    var packetHandler = [];
+    var self = this;
     var packetWriter = new PacketWriter();
 
-    packetHandler[0x00] = function (data, client) {
-        if (client.closed)
-            return;
-
-        client.player.rawping = process.hrtime(client.player.pingTimer);
-
-        if (data.keepAliveId === 0) {
-            return;
-        }
-
-        if (world.lastKeepAlive != data.keepAliveId) {
-            console.log('Id: %d - Client sent bad KeepAlive: should have been: %d - was: %d'.red, client.id, client.lastKeepAlive, data.keepAliveId);
-            var kick = packetWriter.build(0xFF, { serverStatus: 'Bad response to Keep Alive!' });
-            client.network.write(kick);
-            client.network.end();
-        }
-    };
-
-    packetHandler[0x02] = function (data, client) {
+    this.handShake = function (data, client) {
         //console.log('Got handshake from user: ' + data.username);
 
-        if(!world.protocolCheck(data.protocol, client)) {
+        if(!self.world.protocolCheck(data.protocol, client)) {
           return;
         }
 
-        if (!world.serverFullCheck(client)) {
+        if (!self.world.serverFullCheck(client)) {
           return;
         }
         
@@ -45,21 +31,25 @@ function PacketHandler(world) {
 
         var encryptionStart = packetWriter.build(0xFD, {
             serverId: 'BurningPig',
-            publicKey: world.encryption.ASN,
+            publicKey: self.world.encryption.ASN,
             token: client.token
         });
 
         client.network.write(encryptionStart);
     };
 
-    packetHandler[0x03] = function (data, client) {
+    this.chatMessage = function (data, client) {
         if (data.message.length > 100)
             data.message = data.message.slice(0, 100);
         var chat = packetWriter.build(0x03, { message: client.player.name + ': ' + data.message });
-        world.sendToAllPlayers(chat);
+        self.world.sendToAllPlayers(chat);
     };
 
-    packetHandler[0x0A] = function (data, client) {
+    this.useEntity = function (data, client) {
+        console.log('Got useEntity, need to add code!'.red);
+    };
+
+    this.playerBase = function (data, client) {
         var goodUpdate = client.player.updatePosition(data);
         if (goodUpdate) {
             var position = client.player.getPositionLook();
@@ -73,11 +63,11 @@ function PacketHandler(world) {
                 pitch: position.pitch,
                 onGround: position.onGround
             });
-            world.sendToOtherPlayers(update, client);
+            self.world.sendToOtherPlayers(update, client);
         }
     };
 
-    packetHandler[0x0B] = function (data, client) {
+    this.playerPosition = function (data, client) {
         var goodUpdate = client.player.updatePosition(data);
         if (goodUpdate) {
             var position = client.player.getAbsoluteDelta();
@@ -87,11 +77,11 @@ function PacketHandler(world) {
                 dY: position.y,
                 dZ: position.z,
             });
-            world.sendToOtherPlayers(update, client);
+            self.world.sendToOtherPlayers(update, client);
         }
     };
 
-    packetHandler[0x0C] = function (data, client) {
+    this.playerLook = function (data, client) {
         var goodUpdate = client.player.updatePosition(data);
         if (goodUpdate) {
             var position = client.player.getAbsoluteDelta();
@@ -106,11 +96,11 @@ function PacketHandler(world) {
                 headYaw: position.yaw,
             });
 
-            world.sendToOtherPlayers(Buffer.concat([update, headLook], update.length+headLook.length), client);
+            self.world.sendToOtherPlayers(Buffer.concat([update, headLook], update.length+headLook.length), client);
         }
     };
 
-    packetHandler[0x0D] = function (data, client) {
+    this.playerPositionLook = function (data, client) {
         var goodUpdate = client.player.updatePosition(data);
         if (goodUpdate) {
             var position = client.player.getAbsoluteDelta();
@@ -122,14 +112,13 @@ function PacketHandler(world) {
                 yaw: position.yaw,
                 pitch: position.pitch,
             });
-            world.sendToOtherPlayers(update, client);
+            self.world.sendToOtherPlayers(update, client);
         }
     };
 
-    packetHandler[0x0E] = function (data, client) {
-
+    this.playerDigging = function (data, client) {
         if (data.status === 0) {
-            console.log('Player started digging'.magenta);
+            //console.log('Player started digging'.magenta);
             client.player.digging = {
                 Start: process.hrtime(),
                 x: data.x,
@@ -140,17 +129,19 @@ function PacketHandler(world) {
 
         }
         if (data.status === 2) {
-            console.log('Player stopped digging'.magenta);
+            //console.log('Player stopped digging'.magenta);
 
-            var digGood = client.player.validateDigging(data);
+            if(!client.player.validateDigging(data)) {
+                client.player.digging = null;
+                return;
+            }
 
             var blockPosition = { x: data.x, y: data.y, z: data.z };
-            console.log(blockPosition);
-            var dugBlock = world.terrain.getBlock(blockPosition);
+            var dugBlock = self.world.terrain.getBlock(blockPosition);
 
             var digResult = blockDrops[dugBlock.blockType];
 
-            world.terrain.setBlock(blockPosition, { blockType: 0, metadata: 0, light: 0, skylight: 0xFF });
+            self.world.terrain.setBlock(blockPosition, { blockType: 0, metadata: 0, light: 0, skylight: 0x00 });
 
             var dugPacket = packetWriter.build(0x35, {
                 x: data.x,
@@ -161,7 +152,7 @@ function PacketHandler(world) {
             });
 
             var spawnEntity = packetWriter.build(0x15, {
-                entityId: world.nextEntityId++,
+                entityId: self.world.nextEntityId++,
                 itemId: digResult.itemId,
                 count: digResult.count,
                 data: 0,
@@ -173,12 +164,16 @@ function PacketHandler(world) {
                 roll: 0
             });
 
-            world.sendToAllPlayers(dugPacket);
-            world.sendToAllPlayers(spawnEntity);
+            self.world.sendToAllPlayers(dugPacket);
+            self.world.sendToAllPlayers(spawnEntity);
         }
     };
 
-    packetHandler[0x10] = function (data, client) {
+    this.playerBlockPlacement = function (data, client) {
+        console.log('Got playerBlockPlacement, need to add code!'.red);
+    };
+
+    this.heldItemChange = function (data, client) {
         client.player.activeSlot = data.slotId;
 
         var entityHolding = packetWriter.build(0x05, {
@@ -187,22 +182,58 @@ function PacketHandler(world) {
             item: { blockId: -1 }
         });
 
-        world.sendToOtherPlayers(enityHolding);
+        self.world.sendToOtherPlayers(enityHolding);
     };
 
-    packetHandler[0x12] = function (data, client) {
+    this.animation = function (data, client) {
         var packet = packetWriter.build(0x12, {
             entityId: data.entityId,
             animation: data.animation
         });
-        world.sendToOtherPlayers(packet, client);
+        self.world.sendToOtherPlayers(packet, client);
     };
 
-    packetHandler[0xCC] = function (data, client) {
-        //console.log('ID: %d Got client info data: ' + util.inspect(data, true, null, true), client.id);
+    this.entityAction = function (data, client) {
+        console.log('Got entityAction, need to add code!'.red);
     };
 
-    packetHandler[0xCD] = function (data, client) {
+    this.closeWindow = function (data, client) {
+        console.log('Got closeWindow, need to add code!'.red);
+    };
+
+    this.clickWindow = function (data, client) {
+        console.log('Got clickWindow, need to add code!'.red);
+    };
+
+    this.confirmTransaction = function (data, client) {
+        console.log('Got confirmTransaction, need to add code!'.red);
+    };
+
+    this.creativeInventoryAction = function (data, client) {
+        console.log('Got creativeInventoryAction, need to add code!'.red);
+    };
+
+    this.enchantItem = function (data, client) {
+        console.log('Got enchantItem, need to add code!'.red);
+    };
+
+    this.updateSign = function (data, client) {
+        console.log('Got updateSign, need to add code!'.red);
+    };
+
+    this.playerAbilities = function (data, client) {
+        console.log('Got playerAbilities, need to add code!'.red);
+    };
+
+    this.tabComplete = function (data, client) {
+        console.log('Got tabComplete, need to add code!'.red);
+    };
+
+    this.localeViewDistance = function (data, client) {
+        console.log('Got localeViewDistance, need to add code!'.red);
+    };
+
+    this.clientStatuses = function (data, client) {
         if(data.payload !== 0) {
             console.log('Hmm, the client send data in the 0xCD other than 0.'.red);
         }
@@ -211,17 +242,17 @@ function PacketHandler(world) {
 
         client.player = new Player(client);
         client.player.name = handshakeData.username;
-        client.player.entityId = world.nextEntityId++;
+        client.player.entityId = self.world.nextEntityId++;
         
         console.log('New Player Id: %d EntityId: %d'.yellow, client.id, client.player.entityId);
-        console.log('World Status: Players: %d'.yellow, world.players.length);
+        console.log('World Status: Players: %d'.yellow, self.world.players.length);
 
         var packet = packetWriter.build(0x01, {
             entityId: client.player.entityId,
-            gameMode: world.settings.gameMode,
-            dimension: world.settings.dimension,
-            difficulty: world.settings.difficulty,
-            maxPlayers: world.settings.maxPlayers
+            gameMode: self.world.settings.gameMode,
+            dimension: self.world.settings.dimension,
+            difficulty: self.world.settings.difficulty,
+            maxPlayers: self.world.settings.maxPlayers
         });
         client.network.write(packet);
 
@@ -239,19 +270,19 @@ function PacketHandler(world) {
             currentItem: 0
         });
 
-        world.players.push(client);
-        world.entities[client.player.entityId] = client.player;
+        self.world.players.push(client);
+        self.world.entities[client.player.entityId] = client.player;
 
-        world.sendToOtherPlayers(namedEntity, client);
-        world.sendEntitiesToPlayer(client);
+        self.world.sendToOtherPlayers(namedEntity, client);
+        self.world.sendEntitiesToPlayer(client);
 
         console.log('%s (%d) has joined the world!', handshakeData.username, client.id);
         var welcomeChat = packetWriter.build(0x03, { message: handshakeData.username + ' (' + client.id + ') has joined the world!' });
-        world.sendToAllPlayers(welcomeChat);
+        self.world.sendToAllPlayers(welcomeChat);
 
         var pos = packetWriter.build(0x0D, playerPosLook);
 
-        world.terrain.getMapPacket(function(mapdata) {
+        self.world.terrain.getMapPacket(function(mapdata) {
             var map = packetWriter.build(0x38, mapdata);
             client.network.write(map);
             client.network.write(pos);
@@ -259,11 +290,15 @@ function PacketHandler(world) {
 
     };
 
-    packetHandler[0xFC] = function (data, client) {
+    this.pluginMessage = function (data, client) {
+        console.log('Got pluginMessage, need to add code!'.red);
+    };
+
+    this.encryptionResponse = function (data, client) {
         //console.log('Got encryption response');
 
-        var token = world.encryption.decryptSharedSecret(data.token.toString('hex'));
-        var secret = world.encryption.decryptSharedSecret(data.sharedSecret.toString('hex'));
+        var token = self.world.encryption.decryptSharedSecret(data.token.toString('hex'));
+        var secret = self.world.encryption.decryptSharedSecret(data.sharedSecret.toString('hex'));
 
         if(client.token.toString('hex') !== token.toString('hex')) {
             var serverStatus = "Encryption setup failed!";
@@ -274,7 +309,7 @@ function PacketHandler(world) {
             return;
         }
 
-        world.encryption.validatePlayer(client.handshakeData.username, new Buffer(secret, 'binary'), function(result) {
+        self.world.encryption.validatePlayer(client.handshakeData.username, new Buffer(secret, 'binary'), function(result) {
             if(result==='YES') {
                 var encryptionAccepted = packetWriter.build(0xFC, {});
                 client.network.write(encryptionAccepted);
@@ -291,21 +326,11 @@ function PacketHandler(world) {
         });
     };
 
-    packetHandler[0xFE] = function (data, client) {
-        var serverStatus = world.settings.serverName + '§' + world.players.length + '§' + world.settings.maxPlayers;
-        var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
-
-        client.network.write(packet);
-        client.network.end();
+    this.disconnect = function (data, client) {
+        console.log('Got disconnect, need to add code!'.red);
     };
-
-    this.process = function (data) {
-        if (packetHandler.hasOwnProperty(data.data.type)) {
-            packetHandler[data.data.type](data.data, data.client);
-        } else {
-            console.log("Got unhandled data: ".red + util.inspect(data.data, true, null, true));
-        }
-    }
 };
+util.inherits(PacketRouter, EventEmitter);
 
-module.exports = PacketHandler;
+
+module.exports = PacketRouter;

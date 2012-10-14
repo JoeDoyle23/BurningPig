@@ -26,7 +26,7 @@ PacketStream.prototype.write = function (data, encoding) {
                 //throw { message: packet.err };
             }
 
-            this.emit('data', { data: packet, client: self.client });
+            this.emit(packet.type, packet.data, self.client);
 
             if (allData.length === self.packetReader.bufferUsed) {
                 self.partialData = new Buffer(0);
@@ -49,15 +49,15 @@ PacketStream.prototype.write = function (data, encoding) {
 };
 
 PacketStream.prototype.end = function () {
-    this.emit('data', { data: 'end', client: this.client });
+    this.emit('end', { client: this.client });
 };
 
 PacketStream.prototype.error = function (exception) {
-    this.emit('data', { data: 'exception', client: this.client, exception: exception });
+    this.emit('exception', { client: this.client, exception: exception });
 };
 
 PacketStream.prototype.destroy = function () {
-    this.emit('data', { data: 'destroy', client: this.client });
+    this.emit('destroy', { client: this.client });
 };
 
 PacketStream.prototype.partialData = new Buffer(0);

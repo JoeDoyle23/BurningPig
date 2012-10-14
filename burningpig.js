@@ -1,12 +1,13 @@
 ﻿var colors = require('colors'),
     TcpServer = require('./network/tcpServer'),
     World = require('./world');
-    
+
 console.log('Lighting up the BurningPig!'.bold);
     
 var world = new World();
 world.loadSettings();
-world.setMaxListeners(0);
+world.startKeepAlives();
+world.startTimeAndClients();
 
 var server = TcpServer(world);
 server.listen(world.settings.listenPort);

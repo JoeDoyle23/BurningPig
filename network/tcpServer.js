@@ -10,10 +10,9 @@ function TcpServer(world) {
 	        decryptor: world.encryption.getDecryptor(),
 	    };
 	    
-	    client.encrpytor = client.network;
-	    client.encrpytor.pipe(stream);
+	    client.network.pipe(stream);
 
-	    var parser = new PacketStream(client);
+	    var packetStream = new PacketStream(client);
 
 	    stream.on('connect', function () {
 	        console.log('Got connection!'.green);
@@ -41,7 +40,9 @@ function TcpServer(world) {
 	        stream.isClosed = true;
 	    });
 
-		stream.pipe(client.decryptor).pipe(parser).pipe(world, { end: false });
+	    world.setupListeners(packetStream);
+
+		stream.pipe(client.decryptor).pipe(packetStream);
 	});
 	
 	return server;
