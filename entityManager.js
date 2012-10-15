@@ -2,11 +2,11 @@
 var EntityCollection = function() {
 	var self = this;
 
-	this.entities = {};
+	this.entities = [];
 };
 
 EntityCollection.prototype.add = function(item) {
-	entities.push(item);
+	this.entities.push(item);
 };
 
 EntityCollection.prototype.remove = function(itemId) {
@@ -14,7 +14,7 @@ EntityCollection.prototype.remove = function(itemId) {
 		return item.entityId===itemId;
 	};
 
-	var itemToRemove = entities.filter(idFilter);
+	var itemToRemove = this.entities.filter(idFilter);
 	var index = entities.indexOf(itemToRemove);
 	if(index===-1)
 		return;
@@ -30,10 +30,10 @@ EntityCollection.prototype.getItemsInVisualRange = function(position) {
 			ys = ys * ys;
 		var zs = item.z - position.z;
 			zs = zs * zs;
-			return xs+ys+zs < 800;//TODO: Need to get the correct value for this. Per player?
+			return xs+ys+zs < 1000000;//TODO: Need to get the correct value for this. Per player?
 	};
 
-	return entities.filter(visualDistanceFilter);
+	return this.entities.filter(visualDistanceFilter);
 };
 
 EntityCollection.prototype.getItemsInPickupRange = function(position) {
@@ -47,7 +47,7 @@ EntityCollection.prototype.getItemsInPickupRange = function(position) {
 			return xs+ys+zs < 64; //TODO: Need to get the correct value for this
 	};
 
-	return entities.filter(pickupDistanceFilter);
+	return this.entities.filter(pickupDistanceFilter);
 };
 
 module.exports = EntityCollection;

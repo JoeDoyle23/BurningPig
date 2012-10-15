@@ -8,6 +8,10 @@ function PlayerValidator(serverId, publicKeyASN) {
 };
 
 PlayerValidator.prototype.validate = function(playerName, sharedSecret, callback) {
+	//For testing only
+	callback('YES');
+	return;
+	
 	var hash = sessionHash(this.serverId, sharedSecret, this.publicKeyASN);
 
 	var url = 'http://session.minecraft.net/game/checkserver.jsp?user=' + playerName + '&serverId=' + hash;

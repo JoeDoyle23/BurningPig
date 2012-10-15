@@ -1,18 +1,18 @@
 var net = require('net'),
     PacketStream = require('./packetStream'),
-    BinaryWriter = require('../util/binaryWriter');
+    BinaryWriter = require('../util/binaryWriter'),
+    Player = require('../player');
 
 function TcpServer(world) {
 	var server = net.createServer(function (stream) {
     
-	    var client = { 
-	        network: world.encryption.getEncryptor(),
-	        decryptor: world.encryption.getDecryptor(),
-	    };
+	    var player = new Player();
+	    player.network = world.encryption.getEncryptor();
+	    player.decryptor = world.encryption.getDecryptor();
 	    
-	    client.network.pipe(stream);
+	    player.network.pipe(stream);
 
-	    var packetStream = new PacketStream(client);
+	    var packetStream = new PacketStream(player);
 
 	    stream.on('connect', function () {
 	        console.log('Got connection!'.green);
@@ -42,7 +42,7 @@ function TcpServer(world) {
 
 	    world.setupListeners(packetStream);
 
-		stream.pipe(client.decryptor).pipe(packetStream);
+		stream.pipe(player.decryptor).pipe(packetStream);
 	});
 	
 	return server;

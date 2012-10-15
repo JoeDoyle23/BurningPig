@@ -4,7 +4,8 @@
     PacketRouter = require('./packetRouter'),
     PacketWriter = require('./network/packetWriter'),
     Encryption = require('./network/encryption'),
-    Player = require('./player');
+    Player = require('./player'),
+    EntityManager = require('./EntityManager');
 
 function World() {
     var self = this;
@@ -20,7 +21,10 @@ function World() {
 
     var packetWriter = new PacketWriter();
     
-    self.entities = {};
+    self.itemEntities = new EntityManager();
+    self.npcEntities = new EntityManager();
+    self.playerEntities = new EntityManager();
+    
     self.nextEntityId = 1;
 
     self.startKeepAlives = function () {
@@ -33,8 +37,8 @@ function World() {
             self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
             var ka = { keepAliveId: self.lastKeepAlive };
 
-            self.players.forEach(function (client, idx) {
-                client.player.pingTimer = process.hrtime();
+            self.players.forEach(function (player, idx) {
+                player.pingTimer = process.hrtime();
             });
 
             var keepAlivePacket = packetWriter.build(0x00, ka);
@@ -61,15 +65,15 @@ function World() {
 
             var packetLength = 0;
             
-            self.players.forEach(function (client, idx) {
-                var cPing = client.player.getPing();
+            self.players.forEach(function (player, idx) {
+                var cPing = player.getPing();
 
-                var clientlist = packetWriter.build(0xC9, {
-                    playerName: client.player.name,
+                var playerlist = packetWriter.build(0xC9, {
+                    playerName: player.name,
                     online: true,
                     ping:  cPing > 0x7FFF ? 0x7FFF : cPing
                 });
-                self.sendToAllPlayers(clientlist);
+                self.sendToAllPlayers(playerlist);
             });
 
             self.sendToAllPlayers(time);
@@ -153,27 +157,12 @@ function World() {
             }
         });
     };
+
     self.sendEntitiesToPlayer = function(targetPlayer) {
         var self = this;
-        for (var entityId in self.entities) {
-            if (self.entities.hasOwnProperty(entityId)) {
-                var entity = self.entities[entityId];
-                if (targetPlayer.player.entityId !== entity.entityId) {
-                    var absolutePosition = entity.getAbsolutePosition();
-                    var namedEntity = packetWriter.build(0x14, {
-                        entityId: entity.entityId,
-                        playerName: entity.name,
-                        x: absolutePosition.x,
-                        y: absolutePosition.y,
-                        z: absolutePosition.z,
-                        yaw: absolutePosition.yaw,
-                        pitch: absolutePosition.pitch,
-                        currentItem: 0
-                    });
-                    targetPlayer.network.write(namedEntity);
-                }
-            }
-        }
+        targetPlayer.sendItemEntities(self.itemEntities, packetWriter);
+        targetPlayer.sendNpcEntities(self.npcEntities, packetWriter);
+        targetPlayer.sendPlayerEntities(self.playerEntities, packetWriter);
     };
 
     self.findPlayer = function(id) {
@@ -249,29 +238,29 @@ function World() {
         self.sendToAllPlayers(packet);
     };
 
-    self.serverListPing = function (data, client) {
+    self.serverListPing = function (data, player) {
         var serverStatus = self.settings.serverName + '§' + self.players.length + '§' + self.settings.maxPlayers;
         var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
 
-        client.network.write(packet);
-        client.network.end();
+        player.network.write(packet);
+        player.network.end();
     };
 
-    self.keepAlive = function (data, client) {
-        if (client.closed)
+    self.keepAlive = function (data, player) {
+        if (player.closed)
             return;
 
-        client.player.rawping = process.hrtime(client.player.pingTimer);
+        player.rawping = process.hrtime(player.pingTimer);
 
         if (data.keepAliveId === 0) {
             return;
         }
 
         if (self.lastKeepAlive != data.keepAliveId) {
-            console.log('Id: %d - Client sent bad KeepAlive: should have been: %d - was: %d'.red, client.id, client.lastKeepAlive, data.keepAliveId);
+            console.log('Id: %d - Player sent bad KeepAlive: should have been: %d - was: %d'.red, player.id, player.lastKeepAlive, data.keepAliveId);
             var kick = packetWriter.build(0xFF, { serverStatus: 'Bad response to Keep Alive!' });
-            client.network.write(kick);
-            client.network.end();
+            player.network.write(kick);
+            player.network.end();
         }
     };
 };

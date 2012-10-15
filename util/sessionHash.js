@@ -35,7 +35,6 @@ var sessionHash = function (serverId, sharedSecret, publicKeyASN) {
         hashString = hashString.slice(1);
     }
 
-    console.log('hash: ' + minusSign + hashString);
     return minusSign + hashString;
 }
 

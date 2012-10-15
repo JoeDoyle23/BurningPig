@@ -1,8 +1,9 @@
 ﻿
-function Player(clientObject) {
-    this.entityType = 'player';
-    this.name = clientObject.playername;
+function Player() {
+    this.name = '';
     this.entityId = -1;
+    this.token = 0;
+    this.id = 0;
     this.x = 0;
     this.y = 64.5;
     this.z = 0;
@@ -16,6 +17,8 @@ function Player(clientObject) {
     this.rawping = [];
     this.digging = {};
 
+    this.network = {};
+    this.handshakeData = {};
     this.inventory = {};
     this.activeSlot = 0;
 };
@@ -145,5 +148,61 @@ Player.prototype.validateDigging = function (digInfo) {
 
     return true;
 };
+
+Player.prototype.checkForPickups = function(worldEntities) {
+
+
+};
+
+Player.prototype.sendItemEntities = function(itemEntities, packetWriter) {
+    var entities = itemEntities.getItemsInVisualRange({x: this.x, y: this.y, z: this.z});
+
+    for (var entityIndex in entities) {
+        var entity = entities[entityIndex];
+        var spawnEntity = packetWriter.build(0x15, {
+            entityId: entity.entityId,
+            itemId: entity.itemId,
+            count: entity.count,
+            data: 0,
+            x: entity.x,
+            y: entity.y,
+            z: entity.z,
+            rotation: 0,
+            pitch: 0,
+            roll: 0
+        });
+
+        this.network.write(spawnEntity);
+    }
+
+};
+
+Player.prototype.sendNpcEntities = function(npcEntities, packetWriter) {
+
+};
+
+Player.prototype.sendPlayerEntities = function(playerEntities, packetWriter) {
+    var entities = playerEntities.getItemsInVisualRange({x: this.x, y: this.y, z: this.z});
+
+    for (var entityIndex in entities) {
+        var entity = entities[entityIndex];
+        if (this.entityId !== entity.entityId) {
+            var absolutePosition = entity.getAbsolutePosition();
+            var namedEntity = packetWriter.build(0x14, {
+                entityId: entity.entityId,
+                playerName: entity.name,
+                x: absolutePosition.x,
+                y: absolutePosition.y,
+                z: absolutePosition.z,
+                yaw: absolutePosition.yaw,
+                pitch: absolutePosition.pitch,
+                currentItem: 0
+            });
+            this.network.write(namedEntity);
+        }
+    }
+
+};
+
 
 module.exports = Player;
