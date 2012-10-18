@@ -291,7 +291,10 @@ var PacketReader = function () {
     };
 
     parsers[0xFE] = function (binaryReader) {
-        var data = { type: binaryReader.readByte() };
+        var data = { 
+            type: binaryReader.readByte(),
+            value: binaryReader.readByte()
+        };
 
         return { type: 'server_list_ping', data: data };
     };

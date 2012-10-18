@@ -500,6 +500,7 @@ var PacketWriter = function() {
       binaryWriter.writeByte(data.y);
       binaryWriter.writeInt(data.z);
       binaryWriter.writeByte(data.data);
+      binaryWriter.writeBool(false); //TODO: What is this?
       return packet;
   };
 

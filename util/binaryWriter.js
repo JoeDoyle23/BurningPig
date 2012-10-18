@@ -11,7 +11,7 @@ var BinaryWriter = function(buffer, start) {
   };
 
   self.writeString = function (data) {
-      var stringBuf = new Buffer(data, 'ascii');
+      var stringBuf = new Buffer(data, 'binary');
 
       buffer.writeInt16BE(data.length, cursor.pos);
       cursor.pos += 2;

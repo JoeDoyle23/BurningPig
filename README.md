@@ -3,7 +3,7 @@ BurningPig
 
 ![burningpig](http://joedoyle.us/burningpig.png)
 
-###A Minecraft 1.4 (beta: 12w41a) Server in Node.js
+###A Minecraft 1.4 (beta: 12w42b) Server in Node.js
 
 BurningPig is a custom server for the creative game Minecraft:
 <a href="http://minecraft.net">www.minecraft.net</a>
