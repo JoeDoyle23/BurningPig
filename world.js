@@ -13,7 +13,6 @@ function World() {
     self.readable = true;
     self.worldTime = new Buffer(8);
     self.worldTime.fill(0);
-    self.players = [];
     self.terrain = new Terrain();
     self.packetRouter = new PacketRouter(self);
     self.encryption = new Encryption();
@@ -30,14 +29,14 @@ function World() {
     self.startKeepAlives = function () {
 
         self.keepAliveTimer = setInterval(function () {
-            if (self.players.length === 0) {
+            if (self.playerEntities.count() === 0) {
                 return;
             }
 
             self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
             var ka = { keepAliveId: self.lastKeepAlive };
 
-            self.players.forEach(function (player, idx) {
+            self.playerEntities.getAll().forEach(function (player, idx) {
                 player.pingTimer = process.hrtime();
             });
 
@@ -62,10 +61,11 @@ function World() {
             dayTime.writeUInt16BE(timeLow % 24000, 6);
 
             var time = packetWriter.build(0x04, { time: self.worldTime, daytime: dayTime });
+            self.sendToAllPlayers(time);
 
             var packetLength = 0;
             
-            self.players.forEach(function (player, idx) {
+            self.playerEntities.getAll().forEach(function (player, idx) {
                 var cPing = player.getPing();
 
                 var playerlist = packetWriter.build(0xC9, {
@@ -76,28 +76,27 @@ function World() {
                 self.sendToAllPlayers(playerlist);
             });
 
-            self.sendToAllPlayers(time);
         }, 50);
     };
 
     self.write = function (data, encoding) {
         if (data.data === 'end') {
-            self.removePlayerFromList(data.client.id);
+            self.removePlayerFromList(data.player.id);
             console.log('Connection closed!'.red);
             return;
         }
 
         if (data.data === 'exception') {
-            self.removePlayerFromList(data.client.id);
+            self.removePlayerFromList(data.player.id);
             console.log('Socket Exception: '.red + data.exception);
-            data.client.network.end();
+            data.player.network.end();
             return;
         }
 
         if (data.data === 'destroyed') {
-            self.removePlayerFromList(data.client.id);
+            self.removePlayerFromList(data.player.id);
             console.log('Connection destroyed!'.red);
-            data.client.network.end();
+            data.player.network.end();
             return;
         }
 
@@ -136,110 +135,61 @@ function World() {
         packetStream.on('plugin_message', self.packetRouter.pluginMessage);
         packetStream.on('encryption_response', self.packetRouter.encryptionResponse);
         packetStream.on('server_list_ping', self.serverListPing);
-        packetStream.on('disconnect', self.packetRouter.disconnect);
+        packetStream.on('disconnect', self.disconnect);
+        packetStream.on('end', self.socketClosed);
+        packetStream.on('destroy', self.socketClosed);
     };
 
-    self.sendPacket = function(client, packet) {
-        client.network.write(packet);
+    self.sendPacket = function(player, packet) {
+        player.network.write(packet);
     };
 
     self.sendToAllPlayers = function (packet) {
-        self.players.forEach(function (client, idx) {
-            client.network.write(packet);
+        self.playerEntities.getAll().forEach(function (player, idx) {
+            player.network.write(packet);
         });
     };
 
     self.sendToOtherPlayers = function (packet, sourcePlayer) {
-        self.players.forEach(function (client, idx) {
-            if (sourcePlayer.id !== client.id) {
-                client.network.write(packet);
-                client.network.write(packet);
+        self.playerEntities.getAll().forEach(function (player, idx) {
+            if (sourcePlayer.id !== player.id) {
+                player.network.write(packet);
             }
         });
     };
 
     self.sendEntitiesToPlayer = function(targetPlayer) {
-        var self = this;
         targetPlayer.sendItemEntities(self.itemEntities, packetWriter);
         targetPlayer.sendNpcEntities(self.npcEntities, packetWriter);
         targetPlayer.sendPlayerEntities(self.playerEntities, packetWriter);
     };
 
-    self.findPlayer = function(id) {
-        for(var i=0;i<self.players.length;i++) {
-            if (self.players[i].id === id) {
-                var player = self.players[i];
-                player.index = i;
-                return player;
-            }
-        }
-    };
-
-    self.removePlayerFromList = function (id) {
-        var client = self.findPlayer(id);
-        if (client) {
-            var clientEntityId = client.player.entityId;
-            self.players.splice(client.index, 1);
-            self.removeEntities([clientEntityId]);
-            if (self.players.length > 0) {
-              var leavingChat = packetWriter.build(0x03, { message: client.player.name + ' (' + client.id + ') has left the world!' });
-              var clientlist = packetWriter.build(0xC9, {
-                  playerName: client.player.name,
-                  online: false,
-                  ping: 0
-              });
-
-              self.sendToAllPlayers(Buffer.concat([clientlist, leavingChat], clientlist.length + leavingChat.length));
-            }
-            return;
-        }
-    };
-
-    self.protocolCheck = function(protocol, client) {
+    self.protocolCheck = function(protocol, player) {
         if (protocol !== 47) {
             console.log("The client sent a protocol id we don't support: %d".red, protocol);
             var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.4.0 to use this server!' });
-            client.network.write(kick);
-            client.network.end();
+            player.network.write(kick);
+            player.network.end();
             return false;
         }
 
         return true;
     };
 
-    self.serverFullCheck = function (client) {
-        if (self.players.length === self.settings.maxPlayers) {
+    self.serverFullCheck = function (player) {
+        if (self.playerEntities.count() === self.settings.maxPlayers) {
             console.log("The server is full!".red);
             var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, the server is full.' });
-            client.network.write(kick);
-            client.network.end();
+            player.network.write(kick);
+            player.network.end();
             return false;
         }
 
         return true;
-    };
-
-    self.removeEntities = function(entityIdArray) {
-        var self = this;
-
-        entityIdArray.forEach(function (entityId, idx) {
-            if (self.entities.hasOwnProperty(entityId)) {
-                delete self.entities[entityId];
-            }
-        });
-
-        var packet = packetWriter.build(0x1D, {
-            entityIds: entityIdArray
-        });
-
-        //console.log(self.entities.length);
-
-
-        self.sendToAllPlayers(packet);
     };
 
     self.serverListPing = function (data, player) {
-        var serverStatus = '§1\0' + '47\0' + '12w42b\0' + self.settings.serverName + '\0' + self.players.length + '\0' + self.settings.maxPlayers;
+        var serverStatus = '§1\0' + '47\0' + '12w42b\0' + self.settings.serverName + '\0' + self.playerEntities.count() + '\0' + self.settings.maxPlayers;
         var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
 
         player.network.write(packet);
@@ -262,6 +212,31 @@ function World() {
             player.network.write(kick);
             player.network.end();
         }
+    };
+
+    self.disconnect = function (data, player) {
+        //Do stuff like save them to the database.
+
+        self.playerEntities.remove(player.entityId);
+
+        var leavingChat = packetWriter.build(0x03, { message: player.name + ' (' + player.id + ') has left the world!' });
+        var clientlist = packetWriter.build(0xC9, {
+            playerName: player.name,
+            online: false,
+            ping: 0
+        });
+
+        var destroyEntity = packetWriter.build(0x1D, {
+            entityIds: [ player.entityId ]
+        });
+
+        self.sendToAllPlayers(clientlist);
+        self.sendToAllPlayers(destroyEntity);
+        self.sendToAllPlayers(leavingChat);
+    };
+
+    self.socketClosed = function(player) {
+        console.log('Player connection closed.');
     };
 };
 module.exports = World;

@@ -2,12 +2,13 @@
     Stream = require('stream').Stream,
     PacketReader = require('./packetReader');
 
-function PacketStream(client) {
+function PacketStream(player) {
     Stream.call(this);
     this.writable = true;
     this.readable = true;
-    this.client = client;
+    this.player = player;
     this.packetReader = new PacketReader();
+    this.partialData = new Buffer(0);
 };
 
 util.inherits(PacketStream, Stream);
@@ -26,7 +27,7 @@ PacketStream.prototype.write = function (data, encoding) {
                 //throw { message: packet.err };
             }
 
-            this.emit(packet.type, packet.data, self.client);
+            this.emit(packet.type, packet.data, self.player);
 
             if (allData.length === self.packetReader.bufferUsed) {
                 self.partialData = new Buffer(0);
@@ -36,7 +37,7 @@ PacketStream.prototype.write = function (data, encoding) {
             }
 
         } catch (err) {
-            if (err.message == "oob"  && !self.client.network.isClosed) {
+            if (err.message == "oob"  && !self.player.network.isClosed) {
                 console.log('OOB detected'.red);
                 self.partialData = allData;
                 break;
@@ -49,17 +50,15 @@ PacketStream.prototype.write = function (data, encoding) {
 };
 
 PacketStream.prototype.end = function () {
-    this.emit('end', { client: this.client });
+    this.emit('end', this.player);
 };
 
 PacketStream.prototype.error = function (exception) {
-    this.emit('exception', { client: this.client, exception: exception });
+    this.emit('exception', this.player, exception);
 };
 
 PacketStream.prototype.destroy = function () {
-    this.emit('destroy', { client: this.client });
+    this.emit('destroy', this.player);
 };
-
-PacketStream.prototype.partialData = new Buffer(0);
 
 module.exports = PacketStream;

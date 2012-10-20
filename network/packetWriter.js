@@ -546,9 +546,26 @@ var PacketWriter = function() {
   };
 
   builders[0x67] = function (data) {
+      var packet = new Buffer(11);
+      var binaryWriter = new BinaryWriter(packet);
+
+      binaryWriter.writeByte(0x67);
+      binaryWriter.writeByte(data.windowId);
+      binaryWriter.writeShort(data.slot);
+      binaryWriter.writeSlot(data.entity);
+      console.log(packet);
+      return packet;      
   };
 
   builders[0x68] = function (data) {
+      var packet = new Buffer(18);
+      var binaryWriter = new BinaryWriter(packet);
+
+      binaryWriter.writeByte(0x68);
+      binaryWriter.writeByte(data.windowId);
+      binaryWriter.writeShort(data.slot);
+      binaryWriter.writeSlot(data.entity);
+      return packet;      
   };
 
   builders[0x69] = function (data) {

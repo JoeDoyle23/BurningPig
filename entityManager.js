@@ -15,12 +15,22 @@ EntityCollection.prototype.remove = function(itemId) {
 	};
 
 	var itemToRemove = this.entities.filter(idFilter);
-	var index = entities.indexOf(itemToRemove);
-	if(index===-1)
-		return;
+	var index = this.entities.indexOf(itemToRemove[0]);
+	if(index===-1) {
+		console.log('couldnt find entity');
+		return;		
+	}		
 
-	return entities.splice(index);
+	return this.entities.splice(index);
 };
+
+EntityCollection.prototype.getAll = function() {
+	return this.entities;
+}
+
+EntityCollection.prototype.count = function() {
+	return this.entities.length;
+}
 
 EntityCollection.prototype.getItemsInVisualRange = function(position) {
 	var visualDistanceFilter = function(item) {
@@ -44,7 +54,8 @@ EntityCollection.prototype.getItemsInPickupRange = function(position) {
 			ys = ys * ys;
 		var zs = item.z - position.z;
 			zs = zs * zs;
-			return xs+ys+zs < 64; //TODO: Need to get the correct value for this
+			console.log(xs+ys+zs);
+			return xs+ys+zs < 4800; //TODO: Need to get the correct value for this
 	};
 
 	return this.entities.filter(pickupDistanceFilter);

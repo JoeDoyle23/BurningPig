@@ -73,25 +73,24 @@ var BinaryWriter = function(buffer, start) {
   };
 
   self.writeSlot = function (data) {
-      buffer.writeInt16BE(data.blockId, cursor.pos);
-      cursor.pos += 2;
+      self.writeShort(data.itemId);
 
-      if (data.blockId === -1) {
+      if (data.itemId === -1) {
           return;
       }
 
-      self.writeShort(data.itemCount);
-      self.writeShort(data.itemDamage);
+      self.writeByte(data.count);
+      self.writeShort(data.damage);
       self.writeShort(data.metaData.length);
 
       if (data.metaData.length === -1) {
-          return data;
+          return;
       }
 
       data.metaData.copy(buffer, cursor.pos, 0, metaDataLength);
       cursor.pos += data.metaData.length;
 
-      return data;
+      return;
   };
 
   self.writeMetaData = function (data) {

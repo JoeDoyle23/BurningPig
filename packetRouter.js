@@ -30,7 +30,7 @@ function PacketRouter(world) {
         player.handshakeData = data;
 
         var encryptionStart = packetWriter.build(0xFD, {
-            serverId: 'BurningPig',
+            serverId: '-',
             publicKey: self.world.encryption.ASN,
             token: player.token
         });
@@ -44,6 +44,11 @@ function PacketRouter(world) {
 
 
         var chat = packetWriter.build(0x03, { message: player.name + ': ' + data.message });
+
+        if(data.message === '/players') {
+            console.log(self.world.playerEntities.getAll());
+        }
+
         self.world.sendToAllPlayers(chat);
     };
 
@@ -52,21 +57,7 @@ function PacketRouter(world) {
     };
 
     this.playerBase = function (data, player) {
-        var goodUpdate = player.updatePosition(data);
-        if (goodUpdate) {
-            var position = player.getPositionLook();
-            var update = packetWriter.build(0x0D, {
-                entityId: player.entityId,
-                x: position.x,
-                y: position.y,
-                z: position.z,
-                stance: position.stance,
-                yaw: position.yaw,
-                pitch: position.pitch,
-                onGround: position.onGround
-            });
-            self.world.sendToOtherPlayers(update, player);
-        }
+        player.updatePosition(data);
     };
 
     this.playerPosition = function (data, player) {
@@ -80,6 +71,7 @@ function PacketRouter(world) {
                 dZ: position.z,
             });
             self.world.sendToOtherPlayers(update, player);
+            player.checkForPickups(self.world.itemEntities, packetWriter);
         }
     };
 
@@ -104,6 +96,7 @@ function PacketRouter(world) {
 
     this.playerPositionLook = function (data, player) {
         var goodUpdate = player.updatePosition(data);
+
         if (goodUpdate) {
             var position = player.getAbsoluteDelta();
             var update = packetWriter.build(0x21, {
@@ -115,6 +108,7 @@ function PacketRouter(world) {
                 pitch: position.pitch,
             });
             self.world.sendToOtherPlayers(update, player);
+            player.checkForPickups(self.world.itemEntities, packetWriter);
         }
     };
 
@@ -183,11 +177,11 @@ function PacketRouter(world) {
 
         var entityHolding = packetWriter.build(0x05, {
             entityId: player.entityId,
-            slot: 0,
-            item: { blockId: -1 }
+            slot: player.activeSlot,
+            item: { itemId: -1 }
         });
 
-        self.world.sendToOtherPlayers(enityHolding);
+        self.world.sendToOtherPlayers(entityHolding, player);
     };
 
     this.animation = function (data, player) {
@@ -244,12 +238,14 @@ function PacketRouter(world) {
         }
 
         var handshakeData = player.handshakeData;
+        delete player.handshakeData;
 
         player.name = handshakeData.username;
         player.entityId = self.world.nextEntityId++;
         
         console.log('New Player Id: %d EntityId: %d'.yellow, player.id, player.entityId);
-        console.log('World Status: Players: %d'.yellow, self.world.players.length);
+        self.world.playerEntities.add(player);
+        console.log('World Status: Players: %d'.yellow, self.world.playerEntities.count());
 
         var packet = packetWriter.build(0x01, {
             entityId: player.entityId,
@@ -274,14 +270,11 @@ function PacketRouter(world) {
             currentItem: 0
         });
 
-        self.world.players.push(player);
-        self.world.playerEntities.add(player);
-
         self.world.sendToOtherPlayers(namedEntity, player);
         self.world.sendEntitiesToPlayer(player);
 
-        console.log('%s (%d) has joined the world!', handshakeData.username, player.id);
-        var welcomeChat = packetWriter.build(0x03, { message: handshakeData.username + ' (' + player.id + ') has joined the world!' });
+        console.log('%s (%d) has joined the world!', player.name, player.id);
+        var welcomeChat = packetWriter.build(0x03, { message: player.name + ' (' + player.id + ') has joined the world!' });
         self.world.sendToAllPlayers(welcomeChat);
 
         var pos = packetWriter.build(0x0D, playerPosLook);
@@ -291,7 +284,6 @@ function PacketRouter(world) {
             player.network.write(map);
             player.network.write(pos);
         });
-
     };
 
     this.pluginMessage = function (data, player) {
@@ -328,10 +320,6 @@ function PacketRouter(world) {
                 player.network.end();
             }
         });
-    };
-
-    this.disconnect = function (data, player) {
-        console.log('Got disconnect, need to add code!'.red);
     };
 };
 util.inherits(PacketRouter, EventEmitter);

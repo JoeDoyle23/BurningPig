@@ -99,8 +99,8 @@ var BinaryReader = function (buffer, start) {
             return data;
         }
 
-        needs(6);
-        data.itemCount = self.readShort();
+        needs(5);
+        data.itemCount = self.readByte();
         data.itemDamage = self.readShort();
         var metaDataLength = self.readShort();
 

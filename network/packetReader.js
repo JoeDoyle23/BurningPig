@@ -301,6 +301,7 @@ var PacketReader = function () {
 
     parsers[0xFF] = function (binaryReader) {
         var data = {
+            type: binaryReader.readByte(),
             reason: binaryReader.readString(),
         };
 

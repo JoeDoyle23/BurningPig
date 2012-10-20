@@ -20,7 +20,7 @@ function Player() {
     this.network = {};
     this.handshakeData = {};
     this.inventory = {};
-    this.activeSlot = 0;
+    this.activeSlot = 36;
 };
 
 Player.prototype.getPing = function () {
@@ -64,23 +64,48 @@ Player.prototype.getLook = function () {
 };
 
 Player.prototype.getAbsolutePosition = function() {
-    return {
+    var apos = {
         x: Math.round(this.x * 32),
         y: Math.round(this.y * 32),
         z: Math.round(this.z * 32),
         yaw: (((Math.floor(this.yaw) % 360) / 360) * 256) & 0xFF,
         pitch: (((Math.floor(this.pitch) % 360) / 360) * 256) & 0xFF
       };
+
+    return apos;
 };
 
 Player.prototype.getAbsoluteDelta = function () {
-    return {
+    var apos = {
         x: Math.round(this.x * 32 - this.oldx * 32),
         y: Math.round(this.y * 32 - this.oldy * 32),
         z: Math.round(this.z * 32 - this.oldz * 32),
         yaw: (((Math.floor(this.yaw) % 360) / 360) * 256) & 0xFF,
         pitch: (((Math.floor(this.pitch) % 360) / 360) * 256) & 0xFF
     };
+
+    return apos;
+};
+
+Player.prototype.addToInventory = function(item, packetWriter) {
+    if(!this.inventory[this.activeSlot]) {
+        this.inventory[this.activeSlot] = item;    
+    } else {
+        this.inventory[this.activeSlot].count += item.count;
+    }
+
+    var inventoryUpdate = packetWriter.build(0x67, {
+        windowId: 0,
+        slot: this.activeSlot,
+        entity: {
+            itemId: item.itemId,
+            count: this.inventory[this.activeSlot].count,
+            damage: item.damage || 0,
+            metaData: { length: -1 }
+        }
+    });
+
+    this.network.write(inventoryUpdate);
 };
 
 Player.prototype.updatePosition = function (newPosition) {
@@ -149,9 +174,22 @@ Player.prototype.validateDigging = function (digInfo) {
     return true;
 };
 
-Player.prototype.checkForPickups = function(worldEntities) {
+Player.prototype.checkForPickups = function(worldEntities, packetWriter) {
+    var pos = this.getAbsolutePosition();
+    var entities = worldEntities.getItemsInPickupRange({x: pos.x, y: pos.y, z: pos.z});
 
+    for (var entityIndex in entities) {
+        var entity = entities[entityIndex];
+        var pickupEntity = packetWriter.build(0x16, {
+            collectedId: entity.entityId,
+            collectorId: this.entityId
+        });
 
+        worldEntities.remove(entity.entityId);
+
+        this.network.write(pickupEntity);
+        this.addToInventory(entity, packetWriter);
+    }
 };
 
 Player.prototype.sendItemEntities = function(itemEntities, packetWriter) {
@@ -198,11 +236,16 @@ Player.prototype.sendPlayerEntities = function(playerEntities, packetWriter) {
                 pitch: absolutePosition.pitch,
                 currentItem: 0
             });
+            
+            var headLook = packetWriter.build(0x23, {
+                entityId: entity.entityId,
+                headYaw: absolutePosition.yaw
+            });
+
             this.network.write(namedEntity);
+            this.network.write(headLook);
         }
     }
-
 };
-
 
 module.exports = Player;
