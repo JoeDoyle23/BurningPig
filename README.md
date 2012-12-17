@@ -39,12 +39,12 @@ BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, l
 The settings that control the server options are stored in the settings.json file.
 
 Current settings:
-serverName - The name of the server that shows up in the Multiplayer server screen.
-listenPort - The TCP port the server listens on.
-maxPlayers - The maximium number of players the server supports.
-gameMode - The game mode
-dimension - The dimension of the world
-difficulty - World difficulty
+serverName - The name of the server that shows up in the Multiplayer server screen.  
+listenPort - The TCP port the server listens on.  
+maxPlayers - The maximium number of players the server supports.  
+gameMode - The game mode  
+dimension - The dimension of the world  
+difficulty - World difficulty  
 
 Example:
 
@@ -56,6 +56,15 @@ Example:
         "dimension": 0,
         "difficulty": 1
     }
+
+##Installing BurningPig
+
+Using NPM, installing is as easy as:
+    npm install burningpig
+	
+## Live Test Server
+
+Once I get a little further along, I will put up a test server where people can check out the latest version.
 
 ##License
 BuringPig is MIT licensed.  You know the drill.  Enjoy!
