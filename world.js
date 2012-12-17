@@ -189,7 +189,7 @@ function World() {
     };
 
     self.serverListPing = function (data, player) {
-        var serverStatus = '§1\0' + '49\0' + '1.4.5\0' + self.settings.serverName + '\0' + self.playerEntities.count() + '\0' + self.settings.maxPlayers;
+        var serverStatus = ['§1', '49', '1.4.5', self.settings.serverName, self.playerEntities.count(), self.settings.maxPlayers].join('\0');
         var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
 
         player.network.write(packet);

@@ -1,5 +1,1 @@
-*.suo
-bin
-_ReSharper.*
-obj
-*.user
+node_modules

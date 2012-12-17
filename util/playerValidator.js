@@ -1,7 +1,6 @@
 var http = require('http');
 var sessionHash = require('./sessionHash');
 
-
 function PlayerValidator(serverId, publicKeyASN) {
 	this.serverId = serverId;
 	this.publicKeyASN = publicKeyASN;

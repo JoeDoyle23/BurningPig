@@ -1,4 +1,4 @@
-﻿var rsa = require("bignumber");
+﻿var rsa = require("node-bignumber");
 var EncryptionStream = require('./encryptionStream');
 var PlayerValidator = require('../util/playerValidator');
 
@@ -14,11 +14,9 @@ Encryption.prototype.init = function(serverId) {
 };
 
 Encryption.prototype.buildASN = function() {
-	var asnHeader = new Buffer([0x30, 0x81, 0x9F, 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7,
-								0x0D, 0x01, 0x01, 0x01, 0x05, 0x00, 0x03, 0x81, 0x8D, 0x00, 0x30, 0x81, 
-								0x89, 0x02, 0x81, 0x81, 0x00]);
+	var asnHeader = new Buffer('30819F300D06092A864886F70D010101050003818D0030818902818100', 'hex');
 	var modBuffer = new Buffer(this.key.n.toString(16), 'hex');
-	var expBuffer = new Buffer([0x02, 0x03, 0x01, 0x00, 0x01]);
+	var expBuffer = new Buffer('0203010001', 'hex');
 
 	this.ASN = Buffer.concat([asnHeader, modBuffer, expBuffer], 162);
 };
@@ -30,7 +28,6 @@ Encryption.prototype.decryptSharedSecret = function(encyptedSecret) {
 Encryption.prototype.getEncryptor = function() {
 	return new EncryptionStream('e');
 };
-
 
 Encryption.prototype.getDecryptor = function() {
 	return new EncryptionStream('d');
