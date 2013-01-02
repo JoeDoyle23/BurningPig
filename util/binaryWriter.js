@@ -94,12 +94,22 @@ var BinaryWriter = function(buffer, start) {
   };
 
   self.writeMetaData = function (data) {
-      //TODO: metadata
-      buffer.writeInt32BE(0x4800, cursor.pos);
-      cursor.pos += 4;
-      buffer.writeInt32BE(0x7F, cursor.pos);
-      cursor.pos += 4;
-
+	  if(!data) {
+		  //TODO: general metadata
+		  buffer.writeInt16BE(0x0000, cursor.pos);
+		  cursor.pos += 2;
+		  buffer.writeByte(0x7F, cursor.pos);
+		  cursor.pos += 1;
+		  return;
+	  }
+	
+	  buffer.writeByte(((data.type << 5) | index), cursor.pos);
+	  cursor.pos += 1;
+	  switch(type) {
+		case 5:
+		self.writeSlot(data.data);
+		return;
+	  };	  	  
   }
 
 };

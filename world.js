@@ -165,7 +165,7 @@ function World() {
     };
 
     self.protocolCheck = function(protocol, player) {
-        if (protocol !== 49) {
+        if (protocol !== 51) {
             console.log("The client sent a protocol id we don't support: %d".red, protocol);
             var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.4.5 to use this server!' });
             player.network.write(kick);
@@ -189,7 +189,7 @@ function World() {
     };
 
     self.serverListPing = function (data, player) {
-        var serverStatus = ['§1', '49', '1.4.5', self.settings.serverName, self.playerEntities.count(), self.settings.maxPlayers].join('\0');
+        var serverStatus = ['§1', '51', '1.4.6', self.settings.serverName, self.playerEntities.count(), self.settings.maxPlayers].join('\0');
         var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
 
         player.network.write(packet);

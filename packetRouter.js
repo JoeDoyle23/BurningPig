@@ -147,21 +147,47 @@ function PacketRouter(world) {
                 blockMetadata: 0
             });
 
+//            var entity = {
+//                entityId: self.world.nextEntityId++,
+//                itemId: digResult.itemId,
+//                count: digResult.count,
+//                data: 0,
+//                x: (blockPosition.x + 0.5) * 32,
+//                y: (blockPosition.y + 0.5) * 32,
+//                z: (blockPosition.z + 0.5) * 32,
+//                rotation: 0,
+//                pitch: 0,
+//                roll: 0
+//            };
+
             var entity = {
                 entityId: self.world.nextEntityId++,
-                itemId: digResult.itemId,
-                count: digResult.count,
-                data: 0,
+				type: 2,
                 x: (blockPosition.x + 0.5) * 32,
                 y: (blockPosition.y + 0.5) * 32,
                 z: (blockPosition.z + 0.5) * 32,
-                rotation: 0,
+                yaw: 0,
                 pitch: 0,
-                roll: 0
+				objectData: 0
             };
+			
+			var entityMetadata = {
+				entityId: entity.entityId,
+				metadata: {
+					index: 10,
+					type: 5,
+					data: {
+						itemId: digResult.itemId,
+						count: digResult.count,
+						damage: 0,
+						metadata: []
+					}
+				}
+			};
 
             self.world.itemEntities.add(entity);
-            var spawnEntity = packetWriter.build(0x15, entity);
+            var spawnEntity = packetWriter.build(0x17, entity);
+            var spawnEntityMetadata = packetWriter.build(0x28, entityMetadata);
 
             self.world.sendToAllPlayers(dugPacket);
             self.world.sendToAllPlayers(spawnEntity);

@@ -153,25 +153,6 @@ var PacketWriter = function() {
       return packet;
   };
 
-  builders[0x15] = function (data) {
-      var packet = new Buffer(27);
-      var binaryWriter = new BinaryWriter(packet);
-
-      binaryWriter.writeByte(0x15);
-      binaryWriter.writeInt(data.entityId);
-      binaryWriter.writeShort(data.itemId);
-      binaryWriter.writeByte(data.count);
-      binaryWriter.writeShort(data.data);
-      binaryWriter.writeShort(-1);
-      binaryWriter.writeInt(data.x);
-      binaryWriter.writeInt(data.y);
-      binaryWriter.writeInt(data.z);
-      binaryWriter.writeByte(data.rotation);
-      binaryWriter.writeByte(data.pitch);
-      binaryWriter.writeByte(data.roll);
-      return packet;
-  };
-
   builders[0x16] = function (data) {
       var packet = new Buffer(9);
       var binaryWriter = new BinaryWriter(packet);
@@ -183,7 +164,7 @@ var PacketWriter = function() {
   };
 
   builders[0x17] = function (data) {
-      var packet = new Buffer(data.objectData > 0 ? 28 : 22);
+      var packet = new Buffer(data.objectData > 0 ? 30 : 24);
       var binaryWriter = new BinaryWriter(packet);
 
       binaryWriter.writeByte(0x17);
@@ -192,6 +173,9 @@ var PacketWriter = function() {
       binaryWriter.writeInt(data.x);
       binaryWriter.writeInt(data.y);
       binaryWriter.writeInt(data.z);
+      binaryWriter.writeByte(data.yaw);
+      binaryWriter.writeByte(data.pitch);
+
       binaryWriter.writeInt(data.objectData);
       if (data.objectData > 0) {
           binaryWriter.writeShort(data.speedX);
@@ -363,7 +347,12 @@ var PacketWriter = function() {
   };
 
   builders[0x28] = function (data) {
-    //TODO: metadata
+      var packet = new Buffer(9);
+      var binaryWriter = new BinaryWriter(packet);
+
+      binaryWriter.writeByte(0x28);
+      binaryWriter.writeInt(data.entityId);
+	  binaryWriter.writeMetadata(data.meteadata);
   };
 
   builders[0x29] = function (data) {
@@ -470,12 +459,13 @@ var PacketWriter = function() {
   };
 
   builders[0x38] = function (data) {
-      var packet = new Buffer(7 + data.chunkData.length + (12*data.metadata.length));
+      var packet = new Buffer(8 + data.chunkData.length + (12*data.metadata.length));
       var binaryWriter = new BinaryWriter(packet);
   
       binaryWriter.writeByte(0x38);
       binaryWriter.writeShort(data.chunkCount);
       binaryWriter.writeInt(data.chunkData.length);
+	  binaryWriter.writeBool(true); //TODO: Handle SkyLightSent flag
       binaryWriter.writeArray(data.chunkData);
       for (var i = 0; i < data.metadata.length; i++) {
           binaryWriter.writeInt(data.metadata[i].chunkX);
