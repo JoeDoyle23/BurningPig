@@ -94,6 +94,8 @@ Player.prototype.addToInventory = function(item, packetWriter) {
         this.inventory[this.activeSlot].count += item.count;
     }
 
+	console.log(item);
+	return;
     var inventoryUpdate = packetWriter.build(0x67, {
         windowId: 0,
         slot: this.activeSlot,
@@ -175,7 +177,10 @@ Player.prototype.validateDigging = function (digInfo) {
 };
 
 Player.prototype.checkForPickups = function(worldEntities, packetWriter) {
-    var pos = this.getAbsolutePosition();
+    //TODO: Fix Item Pickups after 1.4.6 change
+	return;
+	
+	var pos = this.getAbsolutePosition();
     var entities = worldEntities.getItemsInPickupRange({x: pos.x, y: pos.y, z: pos.z});
 
     for (var entityIndex in entities) {
