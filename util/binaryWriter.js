@@ -1,109 +1,82 @@
 var util = require('util');
 var int64 = require('node-int64');
 
-var BinaryWriter = function() {
+var BinaryWriter = function(buffer, start) {
   var self = this;
-  var buffers = [];
-  var totalLength = 0;
- 
-  self.result = function() {
-	return Buffer.concat(buffers, totalLength);
+
+  var cursor = {pos: start || 0};
+
+  self.getPosition = function() {
+    return cursor.pos;
   };
 
-  var updateBuffers = function(buffer) {
-	  buffers.push(buffer);
-	  totalLength+=buffer.length;
-  };
-  
   self.writeString = function (data) {
       var stringBuf = new Buffer(data, 'binary');
-	  var outBuffer = new Buffer(2 + data.length*2);
-	  
-      outBuffer.writeInt16BE(data.length, 0);
+
+      buffer.writeInt16BE(data.length, cursor.pos);
+      cursor.pos += 2;
       for (var i = 0; i < data.length; i++) {
-          outBuffer.writeInt16BE(stringBuf[i], (i*2)+2);
+          buffer.writeInt16BE(stringBuf[i], cursor.pos);
+          cursor.pos += 2;
       }
-	  
-	  updateBuffers(outBuffer);
-	  return self;
   };
 
   self.writeArray = function (data) {
-      var outBuffer = new Buffer(data.length);
-	  data.copy(outBuffer, 0);
-      updateBuffers(outBuffer);
-	  return self;
+      data.copy(buffer, cursor.pos);
+      cursor.pos += data.length;
   };
 
   self.writeBool = function (data) {
-      var value = data === true ? 0x01 : 0x00;
-      var buffer = new Buffer(1)
-	  buffer.writeUInt8(value, 0);
-	  updateBuffers(buffer);
-	  return self;
+      var value = data === true ? 1 : 0;
+      buffer.writeUInt8(value, cursor.pos);
+      cursor.pos++;
   };
 
   self.writeByte = function (data) {
-      var buffer = new Buffer(1);
-	  buffer.writeUInt8(data, 0);
-	  updateBuffers(buffer);
-	  return self;
+      buffer.writeUInt8(data, cursor.pos);
+      cursor.pos++;
   };
   
   self.writeSByte = function (data) {
-      var buffer = new Buffer(1);
-	  buffer.writeInt8(data, 0);
-	  updateBuffers(buffer);
-	  return self;
+      buffer.writeInt8(data, cursor.pos);
+      cursor.pos++;
   };
 
   self.writeShort = function (data) {
-      var buffer = new Buffer(2);
-	  buffer.writeInt16BE(data, 0);
-	  updateBuffers(buffer);
-	  return self;
+      buffer.writeInt16BE(data, cursor.pos);
+      cursor.pos += 2;
   };
 
   self.writeUShort = function (data) {
-      var buffer = new Buffer(2);
-	  buffer.writeUInt16BE(data, 0);
-	  updateBuffers(buffer);
-	  return self;
+      buffer.writeUInt16BE(data, cursor.pos);
+      cursor.pos += 2;
   };
 
   self.writeInt = function (data) {
-      var buffer = new Buffer(4);
-	  buffer.writeInt32BE(data, 0);
-	  updateBuffers(buffer);
-	  return self;
+      buffer.writeInt32BE(data, cursor.pos);
+      cursor.pos += 4;
   };
 
   self.writeFloat = function (data) {
-      var buffer = new Buffer(4);
-	  buffer.writeFloatBE(data, 0);
-	  updateBuffers(buffer);
-	  return self;
+      buffer.writeFloatBE(data, cursor.pos);
+      cursor.pos += 4;
   };
 
   self.writeDouble = function (data) {
-      var buffer = new Buffer(8);
-	  buffer.writeDoubleBE(data, 0);
-	  updateBuffers(buffer);
-	  return self;
+      buffer.writeDoubleBE(data, cursor.pos);
+      cursor.pos += 8;
   };
 
   self.writeLong = function (data) {
-	var outBuffer = new Buffer(8);
-    data.buffer.copy(outBuffer, 0);
-    updateBuffers(outBuffer);
-    return self;
+      data.buffer.copy(buffer, cursor.pos);
+      cursor.pos += 8;
   };
 
   self.writeSlot = function (data) {
-	  self.writeShort(data.itemId);
+      self.writeShort(data.itemId);
 
       if (data.itemId === -1) {
-          return self;
+          return;
       }
 
       self.writeByte(data.count);
@@ -111,20 +84,23 @@ var BinaryWriter = function() {
       self.writeShort(data.metaData.length);
 
       if (data.metaData.length === -1) {
-          return self;
+          return;
       }
 
-	  self.writeArray(data.metaData);
+      data.metaData.copy(buffer, cursor.pos, 0, metaDataLength);
+      cursor.pos += data.metaData.length;
 
-      return self;
+      return;
   };
 
   self.writeMetaData = function (data) {
 	  if(!data) {
 		  //TODO: general metadata
-		  self.writeShort(0x0000);
-		  self.writeByte(0x7F);
-		  return self;
+		  buffer.writeInt16BE(0x0000, cursor.pos);
+		  cursor.pos += 2;
+		  buffer.writeByte(0x7F, cursor.pos);
+		  cursor.pos += 1;
+		  return;
 	  }
 	
 	  buffer.writeByte(((data.type << 5) | index), cursor.pos);
@@ -132,10 +108,8 @@ var BinaryWriter = function() {
 	  switch(type) {
 		case 5:
 		self.writeSlot(data.data);
-		return self;
+		return;
 	  };	  	  
-	  
-	  return self;
   }
 
 };
