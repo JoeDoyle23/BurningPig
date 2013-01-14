@@ -1,6 +1,5 @@
 var net = require('net'),
     PacketStream = require('./packetStream'),
-    BinaryWriter = require('../util/binaryWriter'),
     Player = require('../player');
 
 function TcpServer(world) {
