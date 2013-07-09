@@ -270,9 +270,10 @@ var PacketReader = function () {
         var data = {
             type: binaryReader.readByte(),
             channel: binaryReader.readString(),
-            length: binaryReader.readShort(),
-            data: binaryReader.readArray(),
+            length: binaryReader.readShort()            
         };
+
+        data.data = binaryReader.readArray(data.length);
 
         return { type: 'plugin_message', data: data };
     };

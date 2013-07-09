@@ -42,8 +42,14 @@ function PacketRouter(world) {
         if (data.message.length > 100)
             data.message = data.message.slice(0, 100);
 
+        var m = {
+            translate: "chat.type.announcement",
+            using: ["Server", player.name + ': ' + data.message]
+        };
 
-        var chat = packetWriter.build(0x03, { message: player.name + ': ' + data.message });
+        console.log('Chat Message:');
+        console.log(JSON.stringify(m));
+        var chat = packetWriter.build(0x03, { message: JSON.stringify(m) });
 
         if(data.message === '/players') {
             console.log(self.world.playerEntities.getAll());
@@ -300,7 +306,13 @@ function PacketRouter(world) {
         self.world.sendEntitiesToPlayer(player);
 
         console.log('%s (%d) has joined the world!', player.name, player.id);
-        var welcomeChat = packetWriter.build(0x03, { message: player.name + ' (' + player.id + ') has joined the world!' });
+
+        var message = {
+            translate:"chat.type.announcement",
+            using: ["Server", player.name + ' (' + player.id + ') has joined the world!']
+        };
+
+        var welcomeChat = packetWriter.build(0x03, { message: JSON.stringify(message)});
         self.world.sendToAllPlayers(welcomeChat);
 
         var pos = packetWriter.build(0x0D, playerPosLook);

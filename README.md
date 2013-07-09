@@ -3,7 +3,7 @@ BurningPig
 
 ![burningpig](http://joedoyle.us/burningpig.png)
 
-###A Minecraft 1.4.7 Server in Node.js
+###A Minecraft 1.6.2 Server in Node.js
 
 BurningPig is a custom server for the creative game Minecraft:
 <a href="http://minecraft.net">www.minecraft.net</a>
@@ -16,6 +16,8 @@ define it, and enough packets are dynamic based on their content that I didn't w
 
 BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, like streams!  
 
+Version 1.6.2 support is basic at the moment.
+
 ##Current Features
 * The vanilla client can connect and donwload the (boring) terrain
 * Time, so day and night happen
@@ -25,6 +27,7 @@ BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, l
 * Digging! & persistent terrain
 * Protocol encryption
 * Player validation against minecraft.net
+* Tested on Node 0.10.*
 
 ##What's Next
 * Player inventory (only current session, not persisted yet)

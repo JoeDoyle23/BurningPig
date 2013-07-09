@@ -165,9 +165,9 @@ function World() {
     };
 
     self.protocolCheck = function(protocol, player) {
-        if (protocol !== 51) {
+        if (protocol !== 74) {
             console.log("The client sent a protocol id we don't support: %d".red, protocol);
-            var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.4.7 to use this server!' });
+            var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.6.2 to use this server!' });
             player.network.write(kick);
             player.network.end();
             return false;
@@ -189,7 +189,7 @@ function World() {
     };
 
     self.serverListPing = function (data, player) {
-        var serverStatus = ['§1', '51', '1.4.7', self.settings.serverName, self.playerEntities.count(), self.settings.maxPlayers].join('\0');
+        var serverStatus = ['§1', '74', '1.6.2', self.settings.serverName, self.playerEntities.count(), self.settings.maxPlayers].join('\0');
         var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
 
         player.network.write(packet);
@@ -219,7 +219,12 @@ function World() {
 
         self.playerEntities.remove(player.entityId);
 
-        var leavingChat = packetWriter.build(0x03, { message: player.name + ' (' + player.id + ') has left the world!' });
+        var message = { 
+            translate: 'chat.type.announcement',
+            using: ["Server", player.name + ' (' + player.id + ') has left the world!']
+        }; 
+
+        var leavingChat = packetWriter.build(0x03, { message: JSON.stringify(message) });
         var clientlist = packetWriter.build(0xC9, {
             playerName: player.name,
             online: false,
