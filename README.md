@@ -18,6 +18,8 @@ BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, l
 
 Version 1.6.2 support is basic at the moment.
 
+**Node v0.10.* is now required for streams2 support!** - I'll add backwards compat soon.
+
 ##Current Features
 * The vanilla client can connect and donwload the (boring) terrain
 * Time, so day and night happen
@@ -27,7 +29,7 @@ Version 1.6.2 support is basic at the moment.
 * Digging! & persistent terrain
 * Protocol encryption
 * Player validation against minecraft.net
-* Tested on Node 0.10.*
+* Node v0.10.* is now required!
 
 ##What's Next
 * Player inventory (only current session, not persisted yet)
@@ -70,4 +72,4 @@ Using NPM, installing is as easy as:
 Once I get a little further along, I will put up a test server where people can check out the latest version.
 
 ##License
-BuringPig is MIT licensed.  You know the drill.  Enjoy!
+BurningPig is MIT licensed.  You know the drill.  Enjoy!

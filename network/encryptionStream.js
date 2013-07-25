@@ -1,18 +1,22 @@
 var crypto = require('crypto');
 var util = require('util');
-var Stream = require('stream').Stream;
+var Transform = require('stream').Transform;
 
 function EncryptionStream(type) {
-    Stream.call(this);
-    this.writable = true;
-    this.readable = true;
+
+  if (!(this instanceof EncryptionStream))
+    return new EncryptionStream(type);
+
+    Transform.call(this, type);
+
     this.type = type;
     this.encryptionEnabled = false;
     this.aes = { final: function(){}};
     this.name = '';
 };
 
-util.inherits(EncryptionStream, Stream);
+EncryptionStream.prototype = Object.create(
+  Transform.prototype, { constructor: { value: EncryptionStream }});
 
 EncryptionStream.prototype.enableEncryption = function (sharedSecret) {
 
@@ -30,24 +34,17 @@ EncryptionStream.prototype.enableEncryption = function (sharedSecret) {
     this.encryptionEnabled = true;  
 };
 
-EncryptionStream.prototype.write = function (data, encoding) {
+EncryptionStream.prototype._transform = function(chunk, encoding, done) {
     if(!this.encryptionEnabled) {
-		this.emit('data', data);
+		this.push(chunk);
+        done();
         return;
 	}
 
-	var encryptedData = new Buffer(this.aes.update(data), 'binary');
-    this.emit('data', encryptedData);
-};
-
-EncryptionStream.prototype.end = function () {
-    this.emit('end');
-    this.aes.final();
-};
-
-EncryptionStream.prototype.error = function () {
-    this.emit('error');
-    this.aes.final();
+	var encryptedData = new Buffer(this.aes.update(chunk), 'binary');
+    //console.log(encryptedData);
+    this.push(encryptedData);
+    done();
 };
 
 EncryptionStream.prototype.destroy = function () {

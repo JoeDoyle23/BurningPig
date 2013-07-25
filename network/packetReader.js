@@ -105,6 +105,8 @@ var PacketReader = function () {
             face: binaryReader.readByte(),
         };
 
+        console.log('Dig packet');
+        console.log(data);
         return { type: 'player_digging', data: data };
     };
 

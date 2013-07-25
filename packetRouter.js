@@ -128,8 +128,13 @@ function PacketRouter(world) {
                 z: data.z,
                 face: data.face
             };
-
         }
+
+        if (data.status === 1) {
+            delete player.digging;
+        }
+
+
         if (data.status === 2) {
             //console.log('Player stopped digging'.magenta);
 

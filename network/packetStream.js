@@ -1,19 +1,22 @@
 ﻿var util = require('util'),
-    Stream = require('stream').Stream,
+    Writable = require('stream').Writable,
     PacketReader = require('./packetReader');
 
 function PacketStream(player) {
-    Stream.call(this);
-    this.writable = true;
-    this.readable = true;
+    if (!(this instanceof PacketStream))
+        return new PacketStream(player);
+
+    Writable.call(this, player);
+    
     this.player = player;
     this.packetReader = new PacketReader();
     this.partialData = new Buffer(0);
 };
 
-util.inherits(PacketStream, Stream);
+PacketStream.prototype = Object.create(
+  Writable.prototype, { constructor: { value: PacketStream }});
 
-PacketStream.prototype.write = function (data, encoding) {
+PacketStream.prototype._write = function(data, encoding, cb) {
     var self = this;
 
     var allData = Buffer.concat([self.partialData, data], self.partialData.length + data.length);
@@ -43,10 +46,13 @@ PacketStream.prototype.write = function (data, encoding) {
                 break;
             } else {
                 console.log('Exception!:\n'.red + err);
+                cb(err);
                 throw err;
             }
         }
     } while (allData.length > 0)
+
+    cb();
 };
 
 PacketStream.prototype.end = function () {
