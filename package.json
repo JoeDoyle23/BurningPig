@@ -11,7 +11,7 @@
   "dependencies": {
     "colors": "*",
     "node-int64": "0.3.0",
-    "node-bignumber": "~1.2.1"
+    "burningpig-encryption": "0.1.0"
   },
   "engines": {
     "node": ">=0.10.3"

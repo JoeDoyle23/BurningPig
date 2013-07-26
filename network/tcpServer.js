@@ -27,6 +27,10 @@ function TcpServer(world) {
 	        //};
 	    });
 
+		stream.on('error', function() {
+			console.log('Crash!');
+		});
+		
         stream.on('destroy', function () {
 	        stream.isClosed = true;
 	    });

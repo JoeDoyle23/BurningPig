@@ -1,4 +1,4 @@
-﻿var rsa = require("node-bignumber");
+﻿var rsa = require("burningpig-encryption");
 var EncryptionStream = require('./encryptionStream');
 var PlayerValidator = require('../util/playerValidator');
 
