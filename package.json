@@ -1,7 +1,7 @@
 {
   "name": "burningpig",
   "description": "A Minecraft 1.6.2 server in Node",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "Joe Doyle <joe@joedoyle.us>",
   "license": "MIT",
   "repository": {
