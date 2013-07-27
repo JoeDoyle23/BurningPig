@@ -2,13 +2,14 @@
     Writable = require('stream').Writable,
     PacketReader = require('./packetReader');
 
-function PacketStream(player) {
+function PacketStream(world, player) {
     if (!(this instanceof PacketStream))
         return new PacketStream(player);
 
     Writable.call(this, player);
     
     this.player = player;
+    this.world = world;
     this.packetReader = new PacketReader();
     this.partialData = new Buffer(0);
 };
@@ -30,7 +31,7 @@ PacketStream.prototype._write = function(data, encoding, cb) {
                 //throw { message: packet.err };
             }
 
-            this.emit(packet.type, packet.data, self.player);
+            this.world.emit(packet.type, packet.data, self.player);
 
             if (allData.length === self.packetReader.bufferUsed) {
                 self.partialData = new Buffer(0);

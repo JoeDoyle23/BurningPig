@@ -105,7 +105,9 @@ var PacketReader = function () {
             face: binaryReader.readByte(),
         };
 
-        return { type: 'player_digging', data: data };
+        var types = [ 'digging_start', 'digging_cancelled', 'digging_done'];
+
+        return { type: types[data.status], data: data };
     };
 
     parsers[0x0F] = function (binaryReader) {

@@ -1,247 +1,167 @@
 ﻿var util = require('util'),
     crypto = require('crypto'),
+    EventEmitter = require('events').EventEmitter,
     Terrain = require('./terrain/terrain'),
     PacketRouter = require('./packetRouter'),
     PacketWriter = require('./network/packetWriter'),
+    PacketSender = require('./network/packetSender'),
     Encryption = require('./network/encryption'),
     Player = require('./player'),
     EntityManager = require('./EntityManager');
 
 function World() {
+    EventEmitter.call(this);
     var self = this;
-    self.writable = true;
-    self.readable = true;
-    self.worldTime = new Buffer(8);
-    self.worldTime.fill(0);
-    self.terrain = new Terrain();
-    self.packetRouter = new PacketRouter(self);
-    self.encryption = new Encryption();
-    self.encryption.init(new Buffer('BurningPig', 'ascii'));
+    this.worldTime = new Buffer(8);
+    this.worldTime.fill(0);
+    this.terrain = new Terrain();
+    this.packetRouter = new PacketRouter(this);
+    this.encryption = new Encryption();
+    this.encryption.init(new Buffer('BurningPig', 'ascii'));
 
-    var packetWriter = new PacketWriter();
+    this.settings = require('./settings.json');
+
+    this.packetWriter = new PacketWriter();
+    this.packetSender = new PacketSender(this);
     
-    self.itemEntities = new EntityManager();
-    self.npcEntities = new EntityManager();
-    self.playerEntities = new EntityManager();
-    
-    self.nextEntityId = 1;
+    this.itemEntities = new EntityManager();
+    this.npcEntities = new EntityManager();
+    this.playerEntities = new EntityManager();
 
-    self.startKeepAlives = function () {
+    this.nextEntityId = 1;   
 
-        self.keepAliveTimer = setInterval(function () {
-            if (self.playerEntities.count() === 0) {
-                return;
-            }
-
-            self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
-            var ka = { keepAliveId: self.lastKeepAlive };
-
-            self.playerEntities.getAll().forEach(function (player, idx) {
-                player.pingTimer = process.hrtime();
-            });
-
-            var keepAlivePacket = packetWriter.build(0x00, ka);
-            self.sendToAllPlayers(keepAlivePacket);
-
-        }, 1000);
-    };
-
-    self.startTimeAndClients = function () {
-        self.timeTimer = setInterval(function () {
-            var timeHigh = self.worldTime.readUInt32BE(0, 4);
-            var timeLow = self.worldTime.readUInt32BE(4, 4) + 1;
-            if (timeLow & 0xFFFF === 0) {
-                timeHigh++;
-            }
-            self.worldTime.writeUInt32BE(timeHigh, 0);
-            self.worldTime.writeUInt32BE(timeLow, 4);
-
-            var dayTime = new Buffer(8);
-            dayTime.fill(0);
-            dayTime.writeUInt16BE(timeLow % 24000, 6);
-
-            var time = packetWriter.build(0x04, { time: self.worldTime, daytime: dayTime });
-            self.sendToAllPlayers(time);
-
-            var packetLength = 0;
-            
-            self.playerEntities.getAll().forEach(function (player, idx) {
-                var cPing = player.getPing();
-
-                var playerlist = packetWriter.build(0xC9, {
-                    playerName: player.name,
-                    online: true,
-                    ping:  cPing > 0x7FFF ? 0x7FFF : cPing
-                });
-                self.sendToAllPlayers(playerlist);
-            });
-
-        }, 50);
-    };
-
-    self.write = function (data, encoding) {
-        if (data.data === 'end') {
-            self.removePlayerFromList(data.player.id);
-            console.log('Connection closed!'.red);
-            return;
-        }
-
-        if (data.data === 'exception') {
-            self.removePlayerFromList(data.player.id);
-            console.log('Socket Exception: '.red + data.exception);
-            data.player.network.end();
-            return;
-        }
-
-        if (data.data === 'destroyed') {
-            self.removePlayerFromList(data.player.id);
-            console.log('Connection destroyed!'.red);
-            data.player.network.end();
-            return;
-        }
-
-        //self.packetRouter.process(data);
-    };
-
-    self.loadSettings = function () {
-        //TODO: check for file first and load defaults if not there.
-        self.settings = require('./settings.json');
-    };
-
-    self.setupListeners = function(packetStream) {
-        packetStream.on('keepalive', self.keepAlive);
-        packetStream.on('handshake', self.packetRouter.handShake);
-        packetStream.on('chat_message', self.packetRouter.chatMessage);
-        packetStream.on('use_entity', self.packetRouter.useEntity);
-        packetStream.on('player_base', self.packetRouter.playerBase);
-        packetStream.on('player_position', self.packetRouter.playerPosition);
-        packetStream.on('player_look', self.packetRouter.playerLook);
-        packetStream.on('player_position_look', self.packetRouter.playerPositionLook);
-        packetStream.on('player_digging', self.packetRouter.playerDigging);
-        packetStream.on('player_block_placement', self.packetRouter.playerBlockPlacement);
-        packetStream.on('held_item_change', self.packetRouter.heldItemChange);
-        packetStream.on('animation', self.packetRouter.animation);
-        packetStream.on('entity_action', self.packetRouter.entityAction);
-        packetStream.on('close_window', self.packetRouter.closeWindow);
-        packetStream.on('click_window', self.packetRouter.clickWindow);
-        packetStream.on('confirm_transaction', self.packetRouter.confirmTransaction);
-        packetStream.on('creative_inventory_action', self.packetRouter.creativeInventoryAction);
-        packetStream.on('enchant_item', self.packetRouter.enchantItem);
-        packetStream.on('update_sign', self.packetRouter.updateSign);
-        packetStream.on('player_abilities', self.packetRouter.playerAbilities);
-        packetStream.on('tab_complete', self.packetRouter.tabComplete);
-        packetStream.on('locale_view_distance', self.packetRouter.localeViewDistance);
-        packetStream.on('client_statuses', self.packetRouter.clientStatuses);
-        packetStream.on('plugin_message', self.packetRouter.pluginMessage);
-        packetStream.on('encryption_response', self.packetRouter.encryptionResponse);
-        packetStream.on('server_list_ping', self.serverListPing);
-        packetStream.on('disconnect', self.disconnect);
-        packetStream.on('end', self.socketClosed);
-        packetStream.on('destroy', self.socketClosed);
-    };
-
-    self.sendPacket = function(player, packet) {
-        player.network.write(packet);
-    };
-
-    self.sendToAllPlayers = function (packet) {
-        self.playerEntities.getAll().forEach(function (player, idx) {
-            player.network.write(packet);
-        });
-    };
-
-    self.sendToOtherPlayers = function (packet, sourcePlayer) {
-        self.playerEntities.getAll().forEach(function (player, idx) {
-            if (sourcePlayer.id !== player.id) {
-                player.network.write(packet);
-            }
-        });
-    };
-
-    self.sendEntitiesToPlayer = function(targetPlayer) {
-        targetPlayer.sendItemEntities(self.itemEntities, packetWriter);
-        targetPlayer.sendNpcEntities(self.npcEntities, packetWriter);
-        targetPlayer.sendPlayerEntities(self.playerEntities, packetWriter);
-    };
-
-    self.protocolCheck = function(protocol, player) {
-        if (protocol !== 74) {
-            console.log("The client sent a protocol id we don't support: %d".red, protocol);
-            var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, your version of Minecraft needs to be 1.6.2 to use this server!' });
-            player.network.write(kick);
-            player.network.end();
-            return false;
-        }
-
-        return true;
-    };
-
-    self.serverFullCheck = function (player) {
-        if (self.playerEntities.count() === self.settings.maxPlayers) {
-            console.log("The server is full!".red);
-            var kick = packetWriter.build(0xFF, { serverStatus: 'Sorry, the server is full.' });
-            player.network.write(kick);
-            player.network.end();
-            return false;
-        }
-
-        return true;
-    };
-
-    self.serverListPing = function (data, player) {
-        var serverStatus = ['§1', '74', '1.6.2', self.settings.serverName, self.playerEntities.count(), self.settings.maxPlayers].join('\0');
-        var packet = packetWriter.build(0xFF, { serverStatus: serverStatus });
-
-        player.network.write(packet);
-        player.network.end();
-    };
-
-    self.keepAlive = function (data, player) {
-        if (player.closed)
-            return;
-
-        player.rawping = process.hrtime(player.pingTimer);
-
-        if (data.keepAliveId === 0) {
-            return;
-        }
-
-        if (self.lastKeepAlive != data.keepAliveId) {
-            console.log('Id: %d - Player sent bad KeepAlive: should have been: %d - was: %d'.red, player.id, player.lastKeepAlive, data.keepAliveId);
-            var kick = packetWriter.build(0xFF, { serverStatus: 'Bad response to Keep Alive!' });
-            player.network.write(kick);
-            player.network.end();
-        }
-    };
-
-    self.disconnect = function (data, player) {
-        //Do stuff like save them to the database.
-
-        self.playerEntities.remove(player.entityId);
-
-        var message = { 
-            translate: 'chat.type.announcement',
-            using: ["Server", player.name + ' (' + player.id + ') has left the world!']
-        }; 
-
-        var leavingChat = packetWriter.build(0x03, { message: JSON.stringify(message) });
-        var clientlist = packetWriter.build(0xC9, {
-            playerName: player.name,
-            online: false,
-            ping: 0
-        });
-
-        var destroyEntity = packetWriter.build(0x1D, {
-            entityIds: [ player.entityId ]
-        });
-
-        self.sendToAllPlayers(clientlist);
-        self.sendToAllPlayers(destroyEntity);
-        self.sendToAllPlayers(leavingChat);
-    };
-
-    self.socketClosed = function(player) {
-        console.log('Player connection closed.');
-    };
+    this.registerHandlers();
 };
+
+World.prototype = Object.create(EventEmitter.prototype, { constructor: { value: World }});
+
+World.prototype.register = function(handlerName) {
+    var handler = require('./handlers/' + handlerName);
+    handler(this);
+    return this;
+};
+
+World.prototype.startKeepAlives = function () {
+    var self = this;
+    this.keepAliveTimer = setInterval(function () {
+        if (self.playerEntities.count() === 0) {
+            return;
+        }
+
+        self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
+        var ka = { ptype: 0x00, keepAliveId: self.lastKeepAlive };
+
+        self.playerEntities.getAll().forEach(function (player, idx) {
+            player.pingTimer = process.hrtime();
+        });
+
+        var keepAlivePacket = self.packetWriter.build(ka);
+        self.packetSender.sendToAllPlayers(keepAlivePacket);
+
+    }, 1000);
+};
+
+World.prototype.startTimeAndClients = function () {
+    var self = this;
+    this.timeTimer = setInterval(function () {
+        var timeHigh = self.worldTime.readUInt32BE(0, 4);
+        var timeLow = self.worldTime.readUInt32BE(4, 4) + 1;
+        if (timeLow & 0xFFFF === 0) {
+            timeHigh++;
+        }
+        self.worldTime.writeUInt32BE(timeHigh, 0);
+        self.worldTime.writeUInt32BE(timeLow, 4);
+
+        var dayTime = new Buffer(8);
+        dayTime.fill(0);
+        dayTime.writeUInt16BE(timeLow % 24000, 6);
+
+        var time = self.packetWriter.build({ ptype: 0x04, time: self.worldTime, daytime: dayTime });
+        self.packetSender.sendToAllPlayers(time);
+
+        var packetLength = 0;
+        
+        self.playerEntities.getAll().forEach(function (player, idx) {
+            var cPing = player.getPing();
+
+            var playerlist = self.packetWriter.build({
+                ptype: 0xC9,
+                playerName: player.name,
+                online: true,
+                ping:  cPing > 0x7FFF ? 0x7FFF : cPing
+            });
+            self.packetSender.sendToAllPlayers(playerlist);
+        });
+
+    }, 50);
+};
+
+World.prototype.registerHandlers = function() {
+    var self = this;
+
+    this.register('serverPingHandler');
+    this.register('keepAliveHandler');
+    this.register('loginHandler');
+    this.register('chatHandler');
+    this.register('playerLookMovementHandler');
+    this.register('diggingHandler');
+
+    self.on('use_entity', function(data, player) { self.packetRouter.useEntity(data, player) });
+    self.on('player_block_placement', function(data, player) { self.packetRouter.playerBlockPlacement(data, player) });
+    self.on('held_item_change', function(data, player) { self.packetRouter.heldItemChange(data, player) });
+    self.on('animation', function(data, player) { self.packetRouter.animation(data, player) });
+    self.on('entity_action', function(data, player) { self.packetRouter.entityAction(data, player) });
+    self.on('close_window', function(data, player) { self.packetRouter.closeWindow(data, player) });
+    self.on('click_window', function(data, player) { self.packetRouter.clickWindow(data, player) });
+    self.on('confirm_transaction', function(data, player) { self.packetRouter.confirmTransaction(data, player) });
+    self.on('creative_inventory_action', function(data, player) { self.packetRouter.creativeInventoryAction(data, player) });
+    self.on('enchant_item', function(data, player) { self.packetRouter.enchantItem(data, player) });
+    self.on('update_sign', function(data, player) { self.packetRouter.updateSign(data, player) });
+    self.on('player_abilities', function(data, player) { self.packetRouter.playerAbilities(data, player) });
+    self.on('locale_view_distance', function(data, player) { self.packetRouter.localeViewDistance(data, player) });
+    self.on('plugin_message', function(data, player) { self.packetRouter.pluginMessage(data, player) });
+    self.on('disconnect', function(data, player) { self.disconnect(data, player) });
+    self.on('end', function(player) { self.socketClosed(player) });
+    self.on('destroy', function(player) { self.socketClosed(player) });
+};
+
+World.prototype.sendEntitiesToPlayer = function(targetPlayer) {
+    targetPlayer.sendItemEntities(this.itemEntities, this.packetWriter);
+    targetPlayer.sendNpcEntities(this.npcEntities, this.packetWriter);
+    targetPlayer.sendPlayerEntities(this.playerEntities, this.packetWriter);
+};
+
+World.prototype.disconnect = function (data, player) {
+    //Do stuff like save them to the database.
+
+    this.playerEntities.remove(player.entityId);
+
+    var message = { 
+        translate: 'chat.type.announcement',
+        using: ["Server", player.name + ' (' + player.id + ') has left the world!']
+    }; 
+
+    var leavingChat = this.packetWriter.build({ ptype: 0x03, message: JSON.stringify(message) });
+    var clientlist = this.packetWriter.build({
+        ptype: 0xC9, 
+        playerName: player.name,
+        online: false,
+        ping: 0
+    });
+
+    var destroyEntity = this.packetWriter.build({
+        ptype: 0x1D, 
+        entityIds: [ player.entityId ]
+    });
+
+    this.packetSender.sendToAllPlayers(clientlist);
+    this.packetSender.sendToAllPlayers(destroyEntity);
+    this.packetSender.sendToAllPlayers(leavingChat);
+};
+
+World.prototype.socketClosed = function(player) {
+    console.log('Player connection closed.');
+};
+
+
 module.exports = World;

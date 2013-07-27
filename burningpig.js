@@ -5,7 +5,6 @@
 console.log('Lighting up the BurningPig!'.bold);
     
 var world = new World();
-world.loadSettings();
 world.startKeepAlives();
 world.startTimeAndClients();
 

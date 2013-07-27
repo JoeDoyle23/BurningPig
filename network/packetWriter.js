@@ -809,13 +809,14 @@ var PacketWriter = function() {
     return packet;
   };
   
-  self.build = function(type, data) {
-    if( !builders.hasOwnProperty(type)) {
-      console.log('Unknown packet to build: ' + type);
+  self.build = function(data) {
+    if( !builders.hasOwnProperty(data.ptype)) {
+      console.log('Unknown packet to build: ' + data.ptype);
+      console.log(data);
       return new Buffer(0);
     }
     
-    return builders[type](data).result();
+    return builders[data.ptype](data).result();
   };
 };
 

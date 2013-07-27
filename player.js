@@ -97,7 +97,8 @@ Player.prototype.addToInventory = function(item, packetWriter) {
 	console.log(item);
 	return;
 
-    var inventoryUpdate = packetWriter.build(0x67, {
+    var inventoryUpdate = packetWriter.build({
+        ptype: 0x67, 
         windowId: 0,
         slot: this.activeSlot,
         entity: {
@@ -178,24 +179,32 @@ Player.prototype.validateDigging = function (digInfo) {
 };
 
 Player.prototype.checkForPickups = function(worldEntities, packetWriter) {
-    //TODO: Fix Item Pickups after 1.4.6 change
-	return;
-
     var pos = this.getAbsolutePosition();
     var entities = worldEntities.getItemsInPickupRange({x: pos.x, y: pos.y, z: pos.z});
 
+    var destroyClientIds = [];
+
     for (var entityIndex in entities) {
         var entity = entities[entityIndex];
-        var pickupEntity = packetWriter.build(0x16, {
+        var pickupEntity = packetWriter.build({
+            ptype: 0x16, 
             collectedId: entity.entityId,
             collectorId: this.entityId
         });
 
+        destroyClientIds.push(entity.entityId);
         worldEntities.remove(entity.entityId);
 
         this.network.write(pickupEntity);
         this.addToInventory(entity, packetWriter);
     }
+
+    var destroy = packetWriter.build({
+        ptype: 0x1D,
+        entityIds: destroyClientIds
+    });
+
+    this.network.write(destroy);
 };
 
 Player.prototype.sendItemEntities = function(itemEntities, packetWriter) {
@@ -203,7 +212,8 @@ Player.prototype.sendItemEntities = function(itemEntities, packetWriter) {
 
     for (var entityIndex in entities) {
         var entity = entities[entityIndex];
-        var spawnEntity = packetWriter.build(0x15, {
+        var spawnEntity = packetWriter.build({
+            ptype: 0x15, 
             entityId: entity.entityId,
             itemId: entity.itemId,
             count: entity.count,
@@ -232,7 +242,8 @@ Player.prototype.sendPlayerEntities = function(playerEntities, packetWriter) {
         var entity = entities[entityIndex];
         if (this.entityId !== entity.entityId) {
             var absolutePosition = entity.getAbsolutePosition();
-            var namedEntity = packetWriter.build(0x14, {
+            var namedEntity = packetWriter.build({
+                ptype: 0x14, 
                 entityId: entity.entityId,
                 playerName: entity.name,
                 x: absolutePosition.x,
@@ -243,7 +254,8 @@ Player.prototype.sendPlayerEntities = function(playerEntities, packetWriter) {
                 currentItem: 0
             });
             
-            var headLook = packetWriter.build(0x23, {
+            var headLook = packetWriter.build({
+                ptype: 0x23, 
                 entityId: entity.entityId,
                 headYaw: absolutePosition.yaw
             });

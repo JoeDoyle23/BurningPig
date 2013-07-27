@@ -1,7 +1,5 @@
 
 var EntityCollection = function() {
-	var self = this;
-
 	this.entities = [];
 };
 
@@ -54,8 +52,7 @@ EntityCollection.prototype.getItemsInPickupRange = function(position) {
 			ys = ys * ys;
 		var zs = item.z - position.z;
 			zs = zs * zs;
-			console.log(xs+ys+zs);
-			return xs+ys+zs < 4800; //TODO: Need to get the correct value for this
+			return xs+ys+zs < 2200; //TODO: Need to get the correct value for this
 	};
 
 	return this.entities.filter(pickupDistanceFilter);

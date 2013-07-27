@@ -9,9 +9,7 @@ function TcpServer(world) {
 	    player.network = world.encryption.getEncryptor();
 	    player.decryptor = world.encryption.getDecryptor();
 	    
-	    player.network.pipe(stream);
-
-	    var packetStream = new PacketStream(player);
+	    var packetStream = new PacketStream(world, player);
 
 	    stream.on('connect', function () {
 	        console.log('Got connection!'.green);
@@ -35,9 +33,9 @@ function TcpServer(world) {
 	        stream.isClosed = true;
 	    });
 
-	    world.setupListeners(packetStream);
+	    //world.setupListeners(packetStream);
 
-		stream.pipe(player.decryptor).pipe(packetStream);
+		player.network.pipe(stream).pipe(player.decryptor).pipe(packetStream);
 	});
 	
 	return server;
