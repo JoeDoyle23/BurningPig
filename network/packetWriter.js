@@ -337,12 +337,12 @@ var PacketWriter = function() {
   };
 
   builders[0x28] = function (data) {
-      var packet = new Packet(9);
+      var packet = new Packet(5 + metaLen(data.metadata));
 
       packet.writeByte(0x28)
             .writeInt(data.entityId)
-	          .writeMetaData(data.metadata);
-			
+	        .writeMetadata(data.metadata);
+		
 	  return packet;
   };
 
@@ -820,11 +820,11 @@ function slotLen(data) {
     if(data.itemId === -1)
         return 2;
 
-    return 5 + metaLen(data.metadata);
+	return data.nbtlength === -1 ? 7 : 7 + data.nbtlength;    
 };
 
 function metaLen(data) {
-    if(!data || data.length===0) {
+    if(data.length===0) {
         return 3;
     }
 
@@ -843,14 +843,15 @@ function metaLen(data) {
                 size+=4;
                 break;
             case 4:
-                size+=2 + strLen(data[i].data);
+                size+=(2 + strLen(data[i].data));
                 break;
             case 5:
-                size+= slotLen(data[i].data);
+                size+=slotLen(data[i].data);
                 break;
         };
     }
 
+	size++;
     return size;
 };
 

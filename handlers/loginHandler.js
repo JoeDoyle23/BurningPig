@@ -65,7 +65,8 @@ var LoginHandler = function(world) {
             z: playerAbsolutePosition.z,
             yaw: playerAbsolutePosition.yaw,
             pitch: playerAbsolutePosition.pitch,
-            currentItem: 0
+            currentItem: 0,
+			metadata: []
         });
 
         world.packetSender.sendToOtherPlayers(namedEntity, player);

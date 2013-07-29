@@ -29,7 +29,6 @@ var DiggingHandler = function(world) {
         var dugBlock = world.terrain.getBlock(blockPosition);
 
         var digResult = blockDrops[dugBlock.blockType];
-        console.log(digResult);
 
         world.terrain.setBlock(blockPosition, { blockType: 0, metadata: 0, light: 0, skylight: 0x00 });
 
@@ -64,7 +63,7 @@ var DiggingHandler = function(world) {
                     itemId: digResult.itemId,
                     count: digResult.count,
                     damage: 0,
-                    metadata: []
+					nbtlength: -1                    
                 }
             }]
         };
@@ -73,10 +72,10 @@ var DiggingHandler = function(world) {
 
         var spawnEntity = world.packetWriter.build(entity);
         var spawnEntityMetadata = world.packetWriter.build(entityMetadata);
-
+		
         world.packetSender.sendToAllPlayers(dugPacket);
         world.packetSender.sendToAllPlayers(spawnEntity);
-        //world.packetSender.sendToAllPlayers(spawnEntityMetadata);
+        world.packetSender.sendToAllPlayers(spawnEntityMetadata);
     });
 };
 

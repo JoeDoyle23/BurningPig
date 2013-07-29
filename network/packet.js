@@ -95,27 +95,25 @@ Packet.prototype.writeSlot = function (data) {
 
     this.writeByte(data.count);
     this.writeShort(data.damage);
-    this.writeShort(data.metadata.length);
+    this.writeShort(data.nbtlength);
 
-    if (data.metadata.length === 0) {
+    if (data.nbtlength === -1) {
         return this;
     }
 
-    this.writeMetadata(data.metadata);
+    //this.writeMetadata(data.metadata);
 
     return this;
 };
 
 Packet.prototype.writeMetadata = function (data) {
-    if(!data || data.length===0) {
+    if(data.length===0) {
 	    this.writeShort(0x0000);
 	    this.writeByte(0x7F);
 	    return this;
     }
-
     for(var i=0,j=data.length;i<j;i++) {
-        this.writeByte(((data[i].type << 5) | i), this.cursor);
-        this.cursor += 1;
+        this.writeByte((data[i].type << 5) | data[i].index);
         switch(data[i].type) {
             case 0:
                 this.writeByte(data[i].data);
@@ -137,7 +135,8 @@ Packet.prototype.writeMetadata = function (data) {
                 break;
         };
     }
-
+	
+	this.writeByte(0x7F);
     return this;
 };
 
