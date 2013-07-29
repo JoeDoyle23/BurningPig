@@ -33,8 +33,6 @@ function TcpServer(world) {
 	        stream.isClosed = true;
 	    });
 
-	    //world.setupListeners(packetStream);
-
 		player.network.pipe(stream).pipe(player.decryptor).pipe(packetStream);
 	});
 	

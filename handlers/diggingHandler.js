@@ -1,3 +1,5 @@
+var blockDrops = require('../blockMapping');
+
 var DiggingHandler = function(world) {
 
     world.on("digging_start", function(data, player) {
@@ -27,6 +29,7 @@ var DiggingHandler = function(world) {
         var dugBlock = world.terrain.getBlock(blockPosition);
 
         var digResult = blockDrops[dugBlock.blockType];
+        console.log(digResult);
 
         world.terrain.setBlock(blockPosition, { blockType: 0, metadata: 0, light: 0, skylight: 0x00 });
 
@@ -38,19 +41,6 @@ var DiggingHandler = function(world) {
             blockType: 0,
             blockMetadata: 0
         });
-
-//            var entity = {
-//                entityId: self.world.nextEntityId++,
-//                itemId: digResult.itemId,
-//                count: digResult.count,
-//                data: 0,
-//                x: (blockPosition.x + 0.5) * 32,
-//                y: (blockPosition.y + 0.5) * 32,
-//                z: (blockPosition.z + 0.5) * 32,
-//                rotation: 0,
-//                pitch: 0,
-//                roll: 0
-//            };
 
         var entity = {
             ptype: 0x17,
@@ -67,7 +57,7 @@ var DiggingHandler = function(world) {
         var entityMetadata = {
             ptype: 0x28,
             entityId: entity.entityId,
-            metadata: {
+            metadata: [{
                 index: 10,
                 type: 5,
                 data: {
@@ -76,7 +66,7 @@ var DiggingHandler = function(world) {
                     damage: 0,
                     metadata: []
                 }
-            }
+            }]
         };
 
         world.itemEntities.add(entity);
@@ -86,6 +76,7 @@ var DiggingHandler = function(world) {
 
         world.packetSender.sendToAllPlayers(dugPacket);
         world.packetSender.sendToAllPlayers(spawnEntity);
+        //world.packetSender.sendToAllPlayers(spawnEntityMetadata);
     });
 };
 

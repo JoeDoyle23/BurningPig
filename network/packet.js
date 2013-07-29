@@ -2,128 +2,143 @@
 var int64 = require('node-int64');
 
 var Packet = function(size) {
-  var self = this;
-  var buffer = new Buffer(size);
-  var cursor = 0;
+  this.buffer = new Buffer(size);
+  this.cursor = 0;
+};
 
-  self.result = function() {
-	return buffer;
-  };
+Packet.prototype.result = function() {
+  	return this.buffer;
+};
   
-  self.getPosition = function() {
-    return cursor;
+Packet.prototype.getPosition = function() {
+    return this.cursor;
+};
+
+Packet.prototype.writeString = function (data) {
+    var stringBuf = new Buffer(data, 'binary');
+
+    this.writeShort(data.length);
+    for (var i = 0; i < data.length; i++) {
+        this.writeShort(stringBuf[i]);
+    }
+
+    return this;
+};
+
+Packet.prototype.writeArray = function (data) {
+    data.copy(this.buffer, this.cursor);
+    this.cursor += data.length;
+	return this;
   };
 
-  self.writeString = function (data) {
-      var stringBuf = new Buffer(data, 'binary');
+Packet.prototype.writeBool = function (data) {
+    var value = data === true ? 1 : 0;
+    this.buffer.writeUInt8(value, this.cursor);
+    this.cursor++;
+    return this;
+};
 
-      self.writeShort(data.length);
-      for (var i = 0; i < data.length; i++) {
-		self.writeShort(stringBuf[i]);
-      }
-	  
-	  return self;
-  };
-
-  self.writeArray = function (data) {
-      data.copy(buffer, cursor);
-      cursor += data.length;
-	  return self;
-  };
-
-  self.writeBool = function (data) {
-      var value = data === true ? 1 : 0;
-      buffer.writeUInt8(value, cursor);
-      cursor++;
-	  return self;
-  };
-
-  self.writeByte = function (data) {
-      buffer.writeUInt8(data, cursor);
-      cursor++;
-	  return self;
-  };
+Packet.prototype.writeByte = function (data) {
+    this.buffer.writeUInt8(data, this.cursor);
+    this.cursor++;
+	return this;
+};
   
-  self.writeSByte = function (data) {
-      buffer.writeInt8(data, cursor);
-      cursor++;
-	  return self;
-  };
+Packet.prototype.writeSByte = function (data) {
+    this.buffer.writeInt8(data, this.cursor);
+    this.cursor++;
+    return this;
+};
 
-  self.writeShort = function (data) {
-      buffer.writeInt16BE(data, cursor);
-      cursor += 2;
-	  return self;
-  };
+Packet.prototype.writeShort = function (data) {
+    this.buffer.writeInt16BE(data, this.cursor);
+    this.cursor += 2;
+	return this;
+};
 
-  self.writeUShort = function (data) {
-      buffer.writeUInt16BE(data, cursor);
-      cursor += 2;
-	  return self;
-  };
+Packet.prototype.writeUShort = function (data) {
+    this.buffer.writeUInt16BE(data, this.cursor);
+    this.cursor += 2;
+	return this;
+};
 
-  self.writeInt = function (data) {
-      buffer.writeInt32BE(data, cursor);
-      cursor += 4;
-	  return self;
-  };
+Packet.prototype.writeInt = function (data) {
+    this.buffer.writeInt32BE(data, this.cursor);
+    this.cursor += 4;
+	return this;
+};
 
-  self.writeFloat = function (data) {
-      buffer.writeFloatBE(data, cursor);
-      cursor += 4;
-	  return self;
-  };
+Packet.prototype.writeFloat = function (data) {
+    this.buffer.writeFloatBE(data, this.cursor);
+    this.cursor += 4;
+    return this;
+};
 
-  self.writeDouble = function (data) {
-      buffer.writeDoubleBE(data, cursor);
-      cursor += 8;
-	  return self;
-  };
+Packet.prototype.writeDouble = function (data) {
+    this.buffer.writeDoubleBE(data, this.cursor);
+    this.cursor += 8;
+    return this;
+};
 
-  self.writeLong = function (data) {
-      data.buffer.copy(buffer, cursor);
-      cursor += 8;
-	  return self;
-  };
+Packet.prototype.writeLong = function (data) {
+    data.buffer.copy(this.buffer, this.cursor);
+    this.cursor += 8;
+    return this;
+};
 
-  self.writeSlot = function (data) {
-      self.writeShort(data.itemId);
+Packet.prototype.writeSlot = function (data) {
+    this.writeShort(data.itemId);
 
-      if (data.itemId === -1) {
-          return self;
-      }
+    if (data.itemId === -1) {
+        return this;
+    }
 
-      self.writeByte(data.count);
-      self.writeShort(data.damage);
-      self.writeShort(data.metaData.length);
+    this.writeByte(data.count);
+    this.writeShort(data.damage);
+    this.writeShort(data.metadata.length);
 
-      if (data.metaData.length === -1) {
-          return self;
-      }
+    if (data.metadata.length === 0) {
+        return this;
+    }
 
-      data.metaData.copy(buffer, cursor, 0, metaDataLength);
-      cursor += data.metaData.length;
+    this.writeMetadata(data.metadata);
 
-      return self;
-  };
+    return this;
+};
 
-  self.writeMetaData = function (data) {
-	  if(!data) {
-		  //TODO: general metadata
-		  self.writeShort(0x0000);
-		  self.writeByte(0x7F);
-		  return self;
-	  }
-	
-	  buffer.writeByte(((data.type << 5) | index), cursor);
-	  cursor += 1;
-	  switch(type) {
-		case 5:
-		self.writeSlot(data.data);
-		return self;
-	  };	  	  
-  }
+Packet.prototype.writeMetadata = function (data) {
+    if(!data || data.length===0) {
+	    this.writeShort(0x0000);
+	    this.writeByte(0x7F);
+	    return this;
+    }
 
+    for(var i=0,j=data.length;i<j;i++) {
+        this.writeByte(((data[i].type << 5) | i), this.cursor);
+        this.cursor += 1;
+        switch(data[i].type) {
+            case 0:
+                this.writeByte(data[i].data);
+                break;
+            case 1:
+                this.writeShort(data[i].data);
+                break;
+            case 2:
+                this.writeInt(data[i].data);
+                break;
+            case 3:
+                this.writeFloat(data[i].data);
+                break;
+            case 4:
+                this.writeString(data[i].data);
+                break;
+            case 5:
+                this.writeSlot(data[i].data);
+                break;
+        };
+    }
+
+    return this;
 };
 
 module.exports = Packet;

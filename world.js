@@ -105,11 +105,11 @@ World.prototype.registerHandlers = function() {
     this.register('chatHandler');
     this.register('playerLookMovementHandler');
     this.register('diggingHandler');
+    this.register('inventoryHandler');
+    this.register('pluginHandler');
 
     self.on('use_entity', function(data, player) { self.packetRouter.useEntity(data, player) });
     self.on('player_block_placement', function(data, player) { self.packetRouter.playerBlockPlacement(data, player) });
-    self.on('held_item_change', function(data, player) { self.packetRouter.heldItemChange(data, player) });
-    self.on('animation', function(data, player) { self.packetRouter.animation(data, player) });
     self.on('entity_action', function(data, player) { self.packetRouter.entityAction(data, player) });
     self.on('close_window', function(data, player) { self.packetRouter.closeWindow(data, player) });
     self.on('click_window', function(data, player) { self.packetRouter.clickWindow(data, player) });
@@ -119,7 +119,6 @@ World.prototype.registerHandlers = function() {
     self.on('update_sign', function(data, player) { self.packetRouter.updateSign(data, player) });
     self.on('player_abilities', function(data, player) { self.packetRouter.playerAbilities(data, player) });
     self.on('locale_view_distance', function(data, player) { self.packetRouter.localeViewDistance(data, player) });
-    self.on('plugin_message', function(data, player) { self.packetRouter.pluginMessage(data, player) });
     self.on('disconnect', function(data, player) { self.disconnect(data, player) });
     self.on('end', function(player) { self.socketClosed(player) });
     self.on('destroy', function(player) { self.socketClosed(player) });

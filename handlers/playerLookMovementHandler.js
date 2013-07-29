@@ -59,6 +59,15 @@ var PlayerLookMovementHandler = function(world) {
             player.checkForPickups(world.itemEntities, world.packetWriter);
         }
     });
+
+    world.on("animation", function(data, player) {
+        var packet = world.packetWriter.build({
+            ptype: 0x12, 
+            entityId: data.entityId,
+            animation: data.animation
+        });
+        world.packetSender.sendToOtherPlayers(packet, player);
+    });
 };
 
 module.exports = PlayerLookMovementHandler;

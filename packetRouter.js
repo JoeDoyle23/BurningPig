@@ -4,7 +4,6 @@
     PacketWriter = require('./network/packetWriter'),
     PacketSender = require('./network/packetSender')
     Player = require('./player'),
-    blockDrops = require('./blockMapping'),
     CommandHandler = require('./CommandHandler');
   
 function PacketRouter(world) {
@@ -21,28 +20,6 @@ function PacketRouter(world) {
 
     this.playerBlockPlacement = function (data, player) {
         console.log('Got playerBlockPlacement, need to add code!'.red);
-    };
-
-    this.heldItemChange = function (data, player) {
-        player.activeSlot = data.slotId;
-
-        var entityHolding = packetWriter.build({
-            ptype: 0x05,
-            entityId: player.entityId,
-            slot: player.activeSlot,
-            item: { itemId: -1 }
-        });
-
-        packetSender.sendToOtherPlayers(entityHolding, player);
-    };
-
-    this.animation = function (data, player) {
-        var packet = packetWriter.build({
-            ptype: 0x12, 
-            entityId: data.entityId,
-            animation: data.animation
-        });
-        packetSender.sendToOtherPlayers(packet, player);
     };
 
     this.entityAction = function (data, player) {
@@ -79,10 +56,6 @@ function PacketRouter(world) {
 
     this.localeViewDistance = function (data, player) {
         console.log('Got localeViewDistance, need to add code!'.red);
-    };
-
-    this.pluginMessage = function (data, player) {
-        console.log('Got pluginMessage, need to add code!'.red);
     };
 };
 util.inherits(PacketRouter, EventEmitter);

@@ -68,7 +68,7 @@ blockDrops[0x18] = {
 };
 
 blockDrops[0x1F] = {
-	itemId: 0x127,
+	itemId: 0x1F,
 	count: 1,
 	chance: 0.25	
 };

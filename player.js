@@ -251,7 +251,8 @@ Player.prototype.sendPlayerEntities = function(playerEntities, packetWriter) {
                 z: absolutePosition.z,
                 yaw: absolutePosition.yaw,
                 pitch: absolutePosition.pitch,
-                currentItem: 0
+                currentItem: 0,
+                metadata: []
             });
             
             var headLook = packetWriter.build({
