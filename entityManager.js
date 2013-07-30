@@ -1,10 +1,12 @@
 
 var EntityCollection = function() {
 	this.entities = [];
+	this.itemcount = 0;
 };
 
 EntityCollection.prototype.add = function(item) {
-	this.entities.push(item);
+	this.entities[item.entityId] = item;
+	this.itemcount++;
 };
 
 EntityCollection.prototype.remove = function(itemId) {
@@ -12,14 +14,8 @@ EntityCollection.prototype.remove = function(itemId) {
 		return item.entityId===itemId;
 	};
 
-	var itemToRemove = this.entities.filter(idFilter);
-	var index = this.entities.indexOf(itemToRemove[0]);
-	if(index===-1) {
-		console.log('couldnt find entity');
-		return;		
-	}		
-
-	return this.entities.splice(index);
+	delete this.entities[itemId];
+	this.itemcount--;
 };
 
 EntityCollection.prototype.getAll = function() {
@@ -27,7 +23,7 @@ EntityCollection.prototype.getAll = function() {
 }
 
 EntityCollection.prototype.count = function() {
-	return this.entities.length;
+	return this.itemcount;
 }
 
 EntityCollection.prototype.getItemsInVisualRange = function(position) {

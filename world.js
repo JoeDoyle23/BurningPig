@@ -1,12 +1,10 @@
 ﻿var util = require('util'),
-    crypto = require('crypto'),
     EventEmitter = require('events').EventEmitter,
     Terrain = require('./terrain/terrain'),
     PacketRouter = require('./packetRouter'),
     PacketWriter = require('./network/packetWriter'),
     PacketSender = require('./network/packetSender'),
     Encryption = require('./network/encryption'),
-    Player = require('./player'),
     EntityManager = require('./EntityManager');
 
 function World() {
@@ -41,75 +39,33 @@ World.prototype.register = function(handlerName) {
     return this;
 };
 
-World.prototype.startKeepAlives = function () {
+World.prototype.startWorld = function () {
     var self = this;
-    this.keepAliveTimer = setInterval(function () {
-        if (self.playerEntities.count() === 0) {
-            return;
-        }
 
-        self.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
-        var ka = { ptype: 0x00, keepAliveId: self.lastKeepAlive };
-
-        self.playerEntities.getAll().forEach(function (player, idx) {
-            player.pingTimer = process.hrtime();
-        });
-
-        var keepAlivePacket = self.packetWriter.build(ka);
-        self.packetSender.sendToAllPlayers(keepAlivePacket);
-
-    }, 1000);
-};
-
-World.prototype.startTimeAndClients = function () {
-    var self = this;
     this.timeTimer = setInterval(function () {
-        var timeHigh = self.worldTime.readUInt32BE(0, 4);
-        var timeLow = self.worldTime.readUInt32BE(4, 4) + 1;
-        if (timeLow & 0xFFFF === 0) {
-            timeHigh++;
-        }
-        self.worldTime.writeUInt32BE(timeHigh, 0);
-        self.worldTime.writeUInt32BE(timeLow, 4);
-
-        var dayTime = new Buffer(8);
-        dayTime.fill(0);
-        dayTime.writeUInt16BE(timeLow % 24000, 6);
-
-        var time = self.packetWriter.build({ ptype: 0x04, time: self.worldTime, daytime: dayTime });
-        self.packetSender.sendToAllPlayers(time);
-
-        var packetLength = 0;
-        
-        self.playerEntities.getAll().forEach(function (player, idx) {
-            var cPing = player.getPing();
-
-            var playerlist = self.packetWriter.build({
-                ptype: 0xC9,
-                playerName: player.name,
-                online: true,
-                ping:  cPing > 0x7FFF ? 0x7FFF : cPing
-            });
-            self.packetSender.sendToAllPlayers(playerlist);
-        });
-
+        self.emit('game_tick');
     }, 50);
+
+    this.keepAliveTimer = setInterval(function () {
+        self.emit('keepalive_tick');
+    }, 1000);
 };
 
 World.prototype.registerHandlers = function() {
     var self = this;
 
+    this.register('timeHandler');
     this.register('serverPingHandler');
     this.register('keepAliveHandler');
     this.register('loginHandler');
     this.register('chatHandler');
     this.register('playerLookMovementHandler');
     this.register('diggingHandler');
+    this.register('buildHandler');
     this.register('inventoryHandler');
     this.register('pluginHandler');
 
     self.on('use_entity', function(data, player) { self.packetRouter.useEntity(data, player) });
-    self.on('player_block_placement', function(data, player) { self.packetRouter.playerBlockPlacement(data, player) });
     self.on('entity_action', function(data, player) { self.packetRouter.entityAction(data, player) });
     self.on('close_window', function(data, player) { self.packetRouter.closeWindow(data, player) });
     self.on('click_window', function(data, player) { self.packetRouter.clickWindow(data, player) });

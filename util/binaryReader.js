@@ -92,25 +92,25 @@ var BinaryReader = function (buffer, start) {
 
     self.readSlot = function () {
         needs(2);
-        var data = { blockId: buffer.readInt16BE(cursor.pos) };
+        var data = { itemId: buffer.readInt16BE(cursor.pos) };
         cursor.pos += 2;
 
-        if (data.blockId === -1) {
+        if (data.itemId === -1) {
             return data;
         }
 
         needs(5);
         data.itemCount = self.readByte();
         data.itemDamage = self.readShort();
-        var metaDataLength = self.readShort();
+        var nbtLength = self.readShort();
 
-        if(metaDataLength===-1) {
+        if(nbtLength===-1) {
             return data;
         }
 
-        data.metaData = new Buffer(metaDataLength);
-        buffer.copy(data.metaData, 0, cursor.pos, metaDataLength);
-        cursor.pos += metaDataLength;
+        data.ntb = new Buffer(nbtLength);
+        buffer.copy(data.nbt, 0, cursor.pos, nbtLength);
+        cursor.pos += nbtLength;
 
         return data;
     };

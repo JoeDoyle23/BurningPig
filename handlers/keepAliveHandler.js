@@ -1,4 +1,22 @@
+var crypto = require('crypto');
+
 var KeepAliveHandler = function(world) {
+
+	world.on('keepalive_tick', function() {
+        if (world.playerEntities.count() === 0) {
+            return;
+        }
+
+        world.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
+        var ka = { ptype: 0x00, keepAliveId: world.lastKeepAlive };
+
+        world.playerEntities.getAll().forEach(function (player, idx) {
+            player.pingTimer = process.hrtime();
+        });
+
+        var keepAlivePacket = world.packetWriter.build(ka);
+        world.packetSender.sendToAllPlayers(keepAlivePacket);
+	});
 
     world.on("keepalive", function(data, player) {
 

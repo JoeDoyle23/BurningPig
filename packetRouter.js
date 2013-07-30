@@ -1,25 +1,14 @@
 ﻿var util = require('util'),
-    crypto = require('crypto'),
-    EventEmitter = require('events').EventEmitter,
-    PacketWriter = require('./network/packetWriter'),
-    PacketSender = require('./network/packetSender')
-    Player = require('./player'),
-    CommandHandler = require('./CommandHandler');
+    EventEmitter = require('events').EventEmitter;
   
 function PacketRouter(world) {
     EventEmitter.call(this);
     this.world = world;
 
     var self = this;
-    var packetWriter = new PacketWriter();
-    var packetSender = new PacketSender(world);
 
     this.useEntity = function (data, player) {
         console.log('Got useEntity, need to add code!'.red);
-    };
-
-    this.playerBlockPlacement = function (data, player) {
-        console.log('Got playerBlockPlacement, need to add code!'.red);
     };
 
     this.entityAction = function (data, player) {

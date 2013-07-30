@@ -18,14 +18,30 @@ var DiggingHandler = function(world) {
     });
 
     world.on("digging_done", function(data, player) {
-        //console.log('Player stopped digging'.magenta);
 
-        if(!player.validateDigging(data)) {
+        function validateDigging(digInfo) {
+            player.digging.Stop = process.hrtime(player.digging.Start);
+
+            //TODO: really validate digging based on tool and block
+
+            if(player.digging.x !== digInfo.x ||
+               player.digging.y !== digInfo.y ||
+               player.digging.z !== digInfo.z ||
+               player.digging.face !== digInfo.face) {
+                return false;
+            }
+
+            return true;
+        };
+
+
+        if(!validateDigging(data)) {
             player.digging = null;
             return;
         }
 
         var blockPosition = { x: data.x, y: data.y, z: data.z };
+        console.log(blockPosition);
         var dugBlock = world.terrain.getBlock(blockPosition);
 
         var digResult = blockDrops[dugBlock.blockType];
@@ -50,7 +66,10 @@ var DiggingHandler = function(world) {
             z: (blockPosition.z + 0.5) * 32,
             yaw: 0,
             pitch: 0,
-            objectData: 0
+            objectData: 0,
+            itemId: digResult.itemId,
+            count: digResult.count,
+            damage: 0
         };
         
         var entityMetadata = {
@@ -76,7 +95,10 @@ var DiggingHandler = function(world) {
         world.packetSender.sendToAllPlayers(dugPacket);
         world.packetSender.sendToAllPlayers(spawnEntity);
         world.packetSender.sendToAllPlayers(spawnEntityMetadata);
+
+        world.emit('update_lighting', blockPosition);
     });
 };
+
 
 module.exports = DiggingHandler;

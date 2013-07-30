@@ -23,6 +23,7 @@
 }
 
 Chunk.prototype.getBlock = function(index) {
+    //console.log('get:index: %d', index);
     return {
         blockType: this.blocks[index],
         metadata: this.metadata[index / 2] >> ((index % 2) * 4) & 0xF,
@@ -32,7 +33,7 @@ Chunk.prototype.getBlock = function(index) {
 };
 
 Chunk.prototype.setBlock = function (index, blockData) {
-    //console.log('index: %d', index);
+    //console.log('set:index: %d', index);
     //console.log('blockType: %d', blockData.blockType);
     this.blocks[index] = blockData.blockType;
 

@@ -38,6 +38,7 @@ TerrainColumn.prototype.getBlock = function (position) {
     var chunkY = position.y % 16;
     var blockIndex = position.x + (position.z * 16) + (chunkY * 256);
 
+    console.log('chunk: ' + chunk);
     return this.chunks[chunk].getBlock(blockIndex);
 };
 

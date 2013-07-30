@@ -16,7 +16,7 @@ var PlayerLookMovementHandler = function(world) {
                 dZ: position.z,
             });
             world.packetSender.sendToOtherPlayers(update, player);
-            player.checkForPickups(world.itemEntities, world.packetWriter);
+            world.emit('check_for_pickups', player);
         }
     });
 
@@ -56,7 +56,7 @@ var PlayerLookMovementHandler = function(world) {
                 pitch: position.pitch,
             });
             world.packetSender.sendToOtherPlayers(update, player);
-            player.checkForPickups(world.itemEntities, world.packetWriter);
+            world.emit('check_for_pickups', player);
         }
     });
 
