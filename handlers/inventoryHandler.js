@@ -1,13 +1,23 @@
 var InventoryHandler = function(world) {
 
     world.on("held_item_change", function(data, player) {
-        player.activeSlot = data.slotId;
+        player.activeSlot = data.slotId + 36;
+        var item = { itemId: -1};
+        
+        if(player.inventory[player.activeSlot]) {
+            item = { 
+                itemId: player.inventory[player.activeSlot].itemId,
+                count: 1,
+                damage: 0,
+                nbtlength: 0
+            }
+        }
 
         var entityHolding = world.packetWriter.build({
             ptype: 0x05,
             entityId: player.entityId,
-            slot: player.activeSlot,
-            item: { itemId: -1 }
+            slot: 0,
+            item: item
         });
 
         world.packetSender.sendToOtherPlayers(entityHolding, player);

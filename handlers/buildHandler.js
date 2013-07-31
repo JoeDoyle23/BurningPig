@@ -2,6 +2,12 @@ var BuildHandler = function(world) {
 
     world.on("player_block_placement", function(data, player) {
 
+        console.log(data);
+        if(data.x === -1 && data.y === 255 && data.z === -1 && data.direction === 255) {
+            //TODO: Handle eating/shooting
+            return;
+        }
+
         var blockPosition = {
             x: data.x,
             y: data.y,
@@ -27,6 +33,13 @@ var BuildHandler = function(world) {
             case 5:
                 blockPosition.x++;
                 break;
+        }
+
+        //console.log('Block placement:');
+        //console.log(blockPosition);
+
+        if(data.heldItem.itemId === -1) {
+            return;
         }
 
         world.terrain.setBlock(blockPosition, {

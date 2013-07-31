@@ -40,14 +40,15 @@ TerrainPersister.prototype.loadTerrainColumn = function (x, z, callback) {
                 column.metadata.primaryBitmap = terrainData.readInt16LE(pos);
                 pos += 2;
                 var chunkBitmap = column.metadata.primaryBitmap;
-
+                //console.log(chunkBitmap);
                 terrainData.copy(column.heightmap, 0, pos, pos + 256);
                 pos += 256;
                 terrainData.copy(column.biomes, 0, pos, pos + 256);
                 pos += 256;
 
                 for (var j = 0; j < 16; j++) {
-                    if ((chunkBitmap & 1) === 1) {
+                    if (chunkBitmap & 1 === 1) {
+                        //console.log("Loading a chunk at " + j);
                         var currentChunk = column.getNewChunk(j);
                         terrainData.copy(currentChunk.blocks, 0, pos, pos + 4096);
                         pos += 4096;
@@ -57,6 +58,10 @@ TerrainPersister.prototype.loadTerrainColumn = function (x, z, callback) {
                         pos += 2048;
                         terrainData.copy(currentChunk.skylight, 0, pos, pos + 2048);
                         pos += 2048;
+                        
+                        //currentChunk.initialSkyLight();
+                        //currentChunk.initialLight();
+                        
                         column.chunks[j] = currentChunk;
                     } else {
                         pos += 10240;
@@ -66,6 +71,7 @@ TerrainPersister.prototype.loadTerrainColumn = function (x, z, callback) {
 
                 callback(column);
                 fs.close(levelDataFile);
+                //self.saveTerrainColumn(column);
             });
         } else {
             //it needs to be generated
@@ -96,7 +102,8 @@ TerrainPersister.prototype.saveTerrainColumn = function (column) {
 
     var chunkBitmap = column.metadata.primaryBitmap;
     for (var j = 0; j < 16; j++) {
-        if ((chunkBitmap & 1) === 1) {
+        if (chunkBitmap & 1 === 1) {
+            //console.log("Saving a chunk at " + j);
             var currentChunk = column.chunks[j];
             terrainFile.write(currentChunk.blocks);
             terrainFile.write(currentChunk.metadata);

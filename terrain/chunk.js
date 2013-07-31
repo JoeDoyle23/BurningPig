@@ -1,12 +1,15 @@
-﻿function Chunk(y) {
+﻿var lightValues = require('./lightValues');
+
+function Chunk(y) {
     this.y = y;
     this.blocks = new Buffer(4096);
     this.metadata = new Buffer(2048);
     this.light = new Buffer(2048);
     this.skylight = new Buffer(2048);
 
-    //Right now chunks will be all dirt
-    this.blocks.fill(3);
+    //chunks will be all dirt for testing
+    //this.blocks.fill(3);
+    this.blocks.fill(0);
     this.metadata.fill(0);
     this.light.fill(0);
     this.skylight.fill(0xff);
@@ -45,10 +48,22 @@ Chunk.prototype.setBlock = function (index, blockData) {
     this.light[index/2] &= (0xF << (((index + 1) % 2) * 4));
     this.light[index/2] |= (blockData.light << ((index % 2) * 4));
 
-    blockData.skylight &= 0xF;
-    this.skylight[index/2] &= (0xF << (((index + 1) % 2) * 4));
-    this.skylight[index/2] |= (blockData.skylight << ((index % 2) * 4));
+    this.setBlockSkyLight(index, blockData.skylight);
 };
+
+Chunk.prototype.setBlockLight = function (index, light) {
+    light &= 0xF;
+    this.light[index/2] &= (0xF << (((index + 1) % 2) * 4));
+    this.light[index/2] |= (light << ((index % 2) * 4));
+};
+
+Chunk.prototype.setBlockSkyLight = function (index, skylight) {
+    skylight &= 0xF;
+    this.skylight[index/2] &= (0xF << (((index + 1) % 2) * 4));
+    this.skylight[index/2] |= (skylight << ((index % 2) * 4));
+};
+
+
 
 Chunk.prototype.getHighestBlock = function (x, z) {
     for (var y = 15; y >= 0; y--) {
@@ -59,6 +74,47 @@ Chunk.prototype.getHighestBlock = function (x, z) {
     }
 
     return -1;
+};
+
+Chunk.prototype.initialSkyLight = function() {
+  var light;
+
+  for (var x = 0; x < 16; ++x) {
+    for (var z = 0; z < 16; ++z) {
+      light = 15;
+
+      for (var y = 16; y >= 0; --y) {
+        var index = x + (z * 16) + (y * 256);
+        light -= lightValues.lightBlock[this.blocks[index]];
+
+        if (light <= 0) { break; }
+
+        var skylight = this.skylight[index / 2] >> ((index % 2) * 4) & 0xF;
+        if (skylight !== light) {
+          this.setBlockSkyLight(index, light);
+        }
+      }
+    }
+  }
+};
+
+Chunk.prototype.initialLight = function() {
+  for (var x = 0; x < 16; ++x) {
+    for (var z = 0; z < 16; ++z) {
+      for (var y = 0; y < 16; ++y) {
+        var index = x + (z * 16) + (y * 256);
+
+        var light = lightValues.lightEmit[this.blocks[index]];
+
+        if (!light) { continue; }
+
+        var blockLight = this.light[index / 2] >> ((index % 2) * 4) & 0xF
+        if(blockLight !== light) {
+          this.setBlockLight(index, light);
+        }
+      }
+    }
+  }
 };
 
 module.exports = Chunk;

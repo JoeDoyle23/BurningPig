@@ -56,18 +56,22 @@ Terrain.prototype.getMapPacket = function (callback) {
     var columndata = [];
     var len = 0;
 
+    var chunkColumnCount = 0;
+
     for (var columnKey in self.columns) {
         var data = self.columns[columnKey].getTransmissionBuffer();
         columndata.push(data);
         len += data.length;
         columnmetadata.push(self.columns[columnKey].metadata);
+        chunkColumnCount++;
     }
 
     var total_chunk = Buffer.concat(columndata, len);
 
+    console.log('Chunk count: ' + chunkColumnCount);
     zlib.deflate(total_chunk, function (err, compressed_chunk) {
         self.compressedChunkData = {
-            chunkCount: 100,
+            chunkCount: chunkColumnCount,
             chunkDataLength: compressed_chunk.length,
             chunkData: compressed_chunk,
             metadata: columnmetadata
@@ -148,6 +152,10 @@ Terrain.prototype.setBlock = function (position, blockData) {
 
     var column = this.columns[util.format('%d~%d', chunkX, chunkZ)];
     return column.setBlock(this.convertToLocal(position, chunkX, chunkZ), blockData);
+};
+
+Terrain.prototype.updateLight = function() {
+
 };
 
 module.exports = Terrain;
