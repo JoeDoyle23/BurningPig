@@ -15,5 +15,12 @@
   },
   "engines": {
     "node": ">=0.10.3"
+  },
+  "devDependencies": {
+    "should": "~1.2.2"
+  },
+  "scripts": {
+	"test" : "mocha",
+	"start" : "node burningpig"
   }
 }
