@@ -14,9 +14,7 @@ project looked like it was originally built for Node v0.4, and Node has seen alo
 since then. I also wasn't happy with the way the protocol was being handled. They tried to staticly 
 define it, and enough packets are dynamic based on their content that I didn't want to try and fix it.
 
-BurningPig is a fresh start using Node v0.8+ and the goodness it has to offer, like streams!  
-
-Version 1.6.2 support is basic at the moment.
+BurningPig was a fresh start using Node v0.8+ and the goodness it has to offer, like streams!  
 
 **Node v0.10.* is now required for streams2 support!** - I'll add backwards compat soon.
 
@@ -27,18 +25,21 @@ Version 1.6.2 support is basic at the moment.
 * Player positions sync'd across connected clients
 * Server settings are now stored in 'settings.json'.
 * Digging! & persistent terrain
+* Pickups after digging
+* Placing blocks
 * Protocol encryption
 * Player validation against minecraft.net
 * Node v0.10.* is now required!
 
 ##What's Next
 * Player inventory (only current session, not persisted yet)
-* Pickups after digging
-* Placing blocks
+* Terrain lighting
+* Terrain generation
 
 ##On The Way
 * Persisted Players & Inventory
-* Terrain generation
+* Game tick events (ex: water flowing, grass growing, etc)
+* Dynamic client chunk loading/unloading
 
 ##Server Settings
 The settings that control the server options are stored in the settings.json file.
