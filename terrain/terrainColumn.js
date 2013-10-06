@@ -37,16 +37,14 @@ TerrainColumn.prototype.generateTestColumn = function () {
 TerrainColumn.prototype.getBlock = function (position) {
     var chunk = Math.floor(position.y / 16);
     var chunkY = position.y % 16;
-    var blockIndex = position.x + (position.z * 16) + (chunkY * 256);
 
     console.log('chunk: ' + chunk);
-    return this.chunks[chunk].getBlock(blockIndex);
+    return this.chunks[chunk].getBlock(position.x, chunkY, position.z);
 };
 
 TerrainColumn.prototype.setBlock = function (position, blockData) {
     var chunk = Math.floor(position.y / 16);
     var chunkY = position.y % 16;
-    var blockIndex = position.x + (position.z * 16) + (chunkY * 256);
 
     this.isSaved = false;
 
@@ -57,7 +55,7 @@ TerrainColumn.prototype.setBlock = function (position, blockData) {
         this.chunks[chunk] = this.getNewChunk(chunk);
     }
 
-    this.chunks[chunk].setBlock(blockIndex, blockData);
+    this.chunks[chunk].setBlock(position.x, chunkY, position.z, blockData);
 };
 
 TerrainColumn.prototype.getTransmissionBuffer = function () {

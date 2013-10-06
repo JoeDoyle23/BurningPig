@@ -127,9 +127,9 @@ var LoginHandler = function(world) {
 };
 
 function protocolCheck(protocol, player, world) {
-    if (protocol !== 74) {
+    if (protocol !== 78) {
         console.log("The client sent a protocol id we don't support: %d".red, protocol);
-        var kick = world.packetWriter.build({ ptype: 0xFF, serverStatus: 'Sorry, your version of Minecraft needs to be 1.6.2 to use this server!' });
+        var kick = world.packetWriter.build({ ptype: 0xFF, serverStatus: 'Sorry, your version of Minecraft needs to be 1.6.4 to use this server!' });
         world.packetSender.sendPacker(player, kick);
         world.packetSender.closeConnection(player);
         return false;

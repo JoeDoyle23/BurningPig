@@ -12,7 +12,7 @@ function Chunk(y) {
     this.blocks.fill(0);
     this.metadata.fill(0);
     this.light.fill(0);
-    this.skylight.fill(0xff);
+    this.skylight.fill(0);
 
     if (this.y === 0) {
         for (var bx = 0; bx < 16; bx++) {
@@ -25,49 +25,69 @@ function Chunk(y) {
     }
 }
 
-Chunk.prototype.getBlock = function(index) {
+Chunk.prototype.getBlock = function(x, y, z) {
     //console.log('get:index: %d', index);
+    var index = x + (z << 4) + (y << 8);
     return {
         blockType: this.blocks[index],
-        metadata: this.metadata[index / 2] >> ((index % 2) * 4) & 0xF,
-        light: this.light[index / 2] >> ((index % 2) * 4) & 0xF,
-        skylight: this.skylight[index / 2] >> ((index % 2) * 4) & 0xF
+        metadata: this.getBlockMetadata(x, y, z),
+        light: this.getBlockLight(x, y, z),
+        skylight: this.getBlockSkyLight(x, y, z)
     };
 };
 
-Chunk.prototype.setBlock = function (index, blockData) {
-    //console.log('set:index: %d', index);
-    //console.log('blockType: %d', blockData.blockType);
+Chunk.prototype.setBlock = function (x, y, z, blockData) {
+    var index = x + (z << 4) + (y << 8);
+
     this.blocks[index] = blockData.blockType;
 
-    blockData.metadata &= 0xF;
-    this.metadata[index/2] &= (0xF << (((index + 1) % 2) * 4));
-    this.metadata[index/2] |= (blockData.metadata << ((index % 2) * 4));
-
-    blockData.light &= 0xF;
-    this.light[index/2] &= (0xF << (((index + 1) % 2) * 4));
-    this.light[index/2] |= (blockData.light << ((index % 2) * 4));
-
-    this.setBlockSkyLight(index, blockData.skylight);
+    this.setBlockMetadata(x, index, blockData.metadata);
+    this.setBlockLight(x, index, blockData.light);
+    this.setBlockSkyLight(x, index, blockData.skylight);
 };
 
-Chunk.prototype.setBlockLight = function (index, light) {
+Chunk.prototype.setBlockType = function (x, y, z, blockType) {
+    var index = x + (z << 4) + (y << 8);
+
+    this.blocks[index] = blockType;
+};
+
+Chunk.prototype.getBlockMetadata = function (x, y, z) {
+    var index = x + (z << 4) + (y << 8);
+    return getNibbleValue(this.metadata, x, index);
+};
+
+Chunk.prototype.setBlockMetadata = function (x, y, z, metadata) {
+    var index = x + (z << 4) + (y << 8);
+    metadata &= 0xF;
+    setNibbleValue(this.metadata, x, index, metadata);
+};
+
+Chunk.prototype.getBlockLight = function (x, y, z) {
+    var index = x + (z << 4) + (y << 8);
+    return getNibbleValue(this.light, x, index);
+};
+
+Chunk.prototype.setBlockLight = function (x, y, z, light) {
+    var index = x + (z << 4) + (y << 8);
     light &= 0xF;
-    this.light[index/2] &= (0xF << (((index + 1) % 2) * 4));
-    this.light[index/2] |= (light << ((index % 2) * 4));
+    setNibbleValue(this.light, x, index, light);
 };
 
-Chunk.prototype.setBlockSkyLight = function (index, skylight) {
+Chunk.prototype.getBlockSkyLight = function (x, y, z) {
+    var index = x + (z << 4) + (y << 8);
+    return getNibbleValue(this.skylight, x, index);
+};
+
+Chunk.prototype.setBlockSkyLight = function (x, y, z, skylight) {
+    var index = x + (z << 4) + (y << 8);
     skylight &= 0xF;
-    this.skylight[index/2] &= (0xF << (((index + 1) % 2) * 4));
-    this.skylight[index/2] |= (skylight << ((index % 2) * 4));
+    setNibbleValue(this.skylight, x, index, skylight);
 };
-
-
 
 Chunk.prototype.getHighestBlock = function (x, z) {
     for (var y = 15; y >= 0; y--) {
-        var blockIndex = x + (z * 16) + (y * 256);
+        var blockIndex = x + (z << 4) + (y << 8);
         if (this.getBlock(blockIndex).blockType != 0) {
             return y;
         }
@@ -79,42 +99,63 @@ Chunk.prototype.getHighestBlock = function (x, z) {
 Chunk.prototype.initialSkyLight = function() {
   var light;
 
-  for (var x = 0; x < 16; ++x) {
-    for (var z = 0; z < 16; ++z) {
-      light = 15;
+    for (var x = 0; x < 16; ++x) {
+        for (var z = 0; z < 16; ++z) {
+            light = 15;
 
-      for (var y = 16; y >= 0; --y) {
-        var index = x + (z * 16) + (y * 256);
-        light -= lightValues.lightBlock[this.blocks[index]];
+            for (var y = 15; y >= 0; --y) {
+                var block = this.getBlock(x, y, z);
+                light -= lightValues.lightBlock[block.blockType];
 
-        if (light <= 0) { break; }
+                if (light <= 0) {
+                    break; 
+                }
 
-        var skylight = this.skylight[index / 2] >> ((index % 2) * 4) & 0xF;
-        if (skylight !== light) {
-          this.setBlockSkyLight(index, light);
+                if (block.skylight !== light) {
+                    this.setBlockSkyLight(x, y, z, light);
+                }
+            }
         }
-      }
     }
-  }
 };
 
 Chunk.prototype.initialLight = function() {
-  for (var x = 0; x < 16; ++x) {
-    for (var z = 0; z < 16; ++z) {
-      for (var y = 0; y < 16; ++y) {
-        var index = x + (z * 16) + (y * 256);
+    for (var x = 0; x < 16; ++x) {
+        for (var z = 0; z < 16; ++z) {
+            for (var y = 0; y < 16; ++y) {
+                var block = this.getBlock(x, y, z);
+                var light = lightValues.lightEmit[block.blockType];
 
-        var light = lightValues.lightEmit[this.blocks[index]];
-
-        if (!light) { continue; }
-
-        var blockLight = this.light[index / 2] >> ((index % 2) * 4) & 0xF
-        if(blockLight !== light) {
-          this.setBlockLight(index, light);
+                if (!light) { 
+                    this.setBlockLight(x, y, z, light);
+                    continue; 
+                }
+            
+                if(block.light !== light) {
+                    this.setBlockLight(x, y, z, light);
+                }
+            }
         }
-      }
     }
-  }
 };
+
+function setNibbleValue(buffer, x, index, value) {
+    if (x % 2) {
+        buffer[index] &= 0x0f;
+        buffer[index] |= (value << 4);
+    } else {
+        buffer[index] &= 0xf0;
+        buffer[index] |= (value & 0x0f);
+    }
+}
+
+function getNibbleValue(buffer, x, index) {
+    if (x % 2) {
+        return buffer[index] >> 4;
+    } else {
+        return buffer[index] & 0x0f;
+    }
+}
+
 
 module.exports = Chunk;
