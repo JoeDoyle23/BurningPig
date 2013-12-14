@@ -1,5 +1,6 @@
 ﻿var util = require('util');
 var int64 = require('node-int64');
+var varint = require('varint');
 
 var Packet = function(size) {
   this.buffer = new Buffer(size);
@@ -16,11 +17,10 @@ Packet.prototype.getPosition = function() {
 
 Packet.prototype.writeString = function (data) {
     var stringBuf = new Buffer(data, 'binary');
+    var length = varint.encode(data.length);
 
-    this.writeShort(data.length);
-    for (var i = 0; i < data.length; i++) {
-        this.writeShort(stringBuf[i]);
-    }
+    this.writeArray(length);
+    this.writeArray(stringBuf);
 
     return this;
 };

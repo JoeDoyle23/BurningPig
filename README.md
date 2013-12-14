@@ -3,7 +3,10 @@ BurningPig
 
 ![burningpig](http://joedoyle.us/burningpig.png)
 
-###A Minecraft 1.6.4 Server in Node.js
+###A Minecraft 1.7.2 Server in Node.js
+
+** The protocol change from 1.6.4 to 1.7.2 is huge and in progress**
+
 
 BurningPig is a custom server for the creative game Minecraft:
 <a href="http://minecraft.net">www.minecraft.net</a>

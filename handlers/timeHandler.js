@@ -1,3 +1,5 @@
+var packets = require('../network/packetList').serverPackets;
+
 var TimeHandler = function(world) {
 
     var dayTime = new Buffer(8);
@@ -14,7 +16,7 @@ var TimeHandler = function(world) {
         dayTime.fill(0);
         dayTime.writeUInt16BE(timeLow % 24000, 6);
 
-        var time = world.packetWriter.build({ ptype: 0x04, time: world.worldTime, daytime: dayTime });
+        var time = world.packetWriter.build({ ptype: packets.TimeUpdate, worldAge: world.worldTime, time: dayTime });
         world.packetSender.sendToAllPlayers(time);
 
         var packetLength = 0;
@@ -23,7 +25,7 @@ var TimeHandler = function(world) {
             var cPing = player.getPing();
 
             var playerlist = world.packetWriter.build({
-                ptype: 0xC9,
+                ptype: packets.PlayerListItem,
                 playerName: player.name,
                 online: true,
                 ping:  cPing > 0x7FFF ? 0x7FFF : cPing

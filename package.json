@@ -1,7 +1,7 @@
 {
   "name": "burningpig",
-  "description": "A Minecraft 1.6.2 server in Node",
-  "version": "0.0.8",
+  "description": "A Minecraft 1.7.2 server in Node",
+  "version": "0.0.9",
   "author": "Joe Doyle <joe@joedoyle.us>",
   "license": "MIT",
   "repository": {
@@ -12,13 +12,15 @@
     "colors": "*",
     "node-int64": "0.3.0",
     "burningpig-encryption": "0.1.0",
-    "webworker-threads": "~0.4.7"
+    "webworker-threads": "~0.4.9",
+    "varint": "~1.0.0"
   },
   "engines": {
     "node": ">=0.10.3"
   },
   "devDependencies": {
-    "should": "~1.2.2"
+    "should": "~2.1.1",
+    "nodemon": "~0.7.10"
   },
   "scripts": {
     "test": "mocha",
