@@ -1,11 +1,15 @@
 ﻿var varint = require('varint'),
     Packet = require('./packet.js'),
     packets = require('./packetList').serverPackets;
+    statusPackets = require('./packetList').serverStatusPackets;
+    loginPackets = require('./packetList').serverLoginPackets;
 
 var PacketWriter = function() {
     var self = this;
 
-    var builders = [];
+    var builders = {};
+    var statusBuilders = {};
+    var loginBuilders = {};
 
     builders[packets.KeepAlive] = function (data) {
         var packet = new Packet(5);
@@ -134,7 +138,7 @@ var PacketWriter = function() {
         var packet = new Packet(2 + entityId.length);
 
         packet.writeByte(packets.Animation)
-            .writeArray(entityId)
+            .writeVarint(entityId)
             .writeByte(data.animation);
 
         return packet;
@@ -145,7 +149,7 @@ var PacketWriter = function() {
         var packet = new Packet(17 + entityId.length + strLen(data.playerName) + strLen(data.playerUUID) + metaLen(data.metadata));
 
         packet.writeByte(packets.SpawnPlayer)
-            .writeArray(data.entityId)
+            .writeVarint(data.entityId)
             .writeString(data.playerUUID)
             .writeString(data.playerName)
             .writeInt(data.x)
@@ -174,7 +178,7 @@ var PacketWriter = function() {
         var packet = new Packet(entityId.length + data.objectData > 0 ? 26 : 20);
 
         packet.writeByte(packets.SpawnObject)
-            .writeArray(entityId)
+            .writeVarint(entityId)
             .writeByte(data.type)
             .writeInt(data.x)
             .writeInt(data.y)
@@ -195,7 +199,7 @@ var PacketWriter = function() {
         var packet = new Packet(entityId.length + 24);
 
         packet.writeByte(packets.SpawnMob)
-            .writeArray(entityId)
+            .writeVarint(entityId)
             .writeByte(data.type)
             .writeInt(data.x)
             .writeInt(data.y)
@@ -210,12 +214,12 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.SpawnPainting] = function(data) {
+    builders[packets.SpawnPainting] = function (data) {
         var entityId = varint.encode(data.entityId);
         var packet = new Packet(17 + entityId.length + strLen(data.title));
 
         packet.writeByte(packets.SpawnPainting)
-            .writeArray(entityId)
+            .writeVarint(entityId)
             .writeString(data.title)
             .writeInt(data.x)
             .writeInt(data.y)
@@ -224,12 +228,12 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.SpawnExperienceOrb] = function(data) {
+    builders[packets.SpawnExperienceOrb] = function (data) {
         var entityId = varint.encode(data.entityId);
         var packet = new Packet(15 + entityId.length);
 
         packet.writeByte(packets.SpawnExperienceOrb)
-            .writeArray(entityId)
+            .writeVarint(entityId)
             .writeInt(data.x)
             .writeInt(data.y)
             .writeInt(data.z)
@@ -237,7 +241,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityVelocity] = function(data) {
+    builders[packets.EntityVelocity] = function (data) {
         var packet = new Packet(11);
 
         packet.writeByte(packets.EntityVelocity)
@@ -248,7 +252,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.DesctroyEntities] = function(data) {
+    builders[packets.DesctroyEntities] = function (data) {
         var packet = new Packet(2 + data.entityIds.length * 4);
 
         packet.writeByte(packets.DesctroyEntities)
@@ -260,7 +264,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.Entity] = function(data) {
+    builders[packets.Entity] = function (data) {
         var packet = new Packet(5);
 
         packet.writeByte(packets.Entity)
@@ -268,7 +272,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityRelativeMove] = function(data) {
+    builders[packets.EntityRelativeMove] = function (data) {
         var packet = new Packet(8);
 
         packet.writeByte(packets.EntityRelativeMove)
@@ -279,7 +283,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityLook] = function(data) {
+    builders[packets.EntityLook] = function (data) {
         var packet = new Packet(7);
 
         packet.writeByte(packets.EntityLook)
@@ -289,7 +293,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityLookAndRelativeMove] = function(data) {
+    builders[packets.EntityLookAndRelativeMove] = function (data) {
         var packet = new Packet(10);
 
         packet.writeByte(packets.EntityLookAndRelativeMove)
@@ -302,7 +306,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityTeleport] = function(data) {
+    builders[packets.EntityTeleport] = function (data) {
         var packet = new Packet(19);
 
         packet.writeByte(packets.EntityTeleport)
@@ -315,7 +319,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityHeadLook] = function(data) {
+    builders[packets.EntityHeadLook] = function (data) {
         var packet = new Packet(6);
 
         packet.writeByte(packets.EntityHeadLook)
@@ -324,7 +328,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityStatus] = function(data) {
+    builders[packets.EntityStatus] = function (data) {
         var packet = new Packet(6);
 
         packet.writeByte(packets.EntityStatus)
@@ -333,7 +337,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.AttachEntity] = function(data) {
+    builders[packets.AttachEntity] = function (data) {
         var packet = new Packet(10);
 
         packet.writeByte(packets.AttachEntity)
@@ -344,7 +348,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityMetadata] = function(data) {
+    builders[packets.EntityMetadata] = function (data) {
         var packet = new Packet(5 + metaLen(data.metadata));
 
         packet.writeByte(packets.EntityMetadata)
@@ -354,7 +358,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityEffect] = function(data) {
+    builders[packets.EntityEffect] = function (data) {
         var packet = new Packet(9);
 
         packet.writeByte(packets.EntityEffect)
@@ -365,7 +369,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.RemoveEntityEffect] = function(data) {
+    builders[packets.RemoveEntityEffect] = function (data) {
         var packet = new Packet(9);
 
         packet.writeByte(packets.RemoveEntityEffect)
@@ -374,7 +378,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.SetExperience] = function(data) {
+    builders[packets.SetExperience] = function (data) {
         var packet = Packet(9);
 
         packet.writeByte(packets.SetExperience)
@@ -384,7 +388,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.EntityProperties] = function(data) {
+    builders[packets.EntityProperties] = function (data) {
         var packet = Packet(19 + strLen(data.key));
 
         packet.writeByte(packets.EntityProperties)
@@ -397,7 +401,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.ChunkData] = function(data) {
+    builders[packets.ChunkData] = function (data) {
         var packet = new Packet(18 + data.compressedSize);
 
         packet.writeByte(packets.ChunkData)
@@ -411,7 +415,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.MultiBlockChange] = function(data) {
+    builders[packets.MultiBlockChange] = function (data) {
         var packet = new Packet(15 + data.data.length * 4);
 
         packet.writeByte(packets.MultiBlockChange)
@@ -426,7 +430,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.BlockChange] = function(data) {
+    builders[packets.BlockChange] = function (data) {
         var blockType = varint.encode(data.blockType);
         var packet = new Packet(11 + blockId.length);
 
@@ -434,12 +438,12 @@ var PacketWriter = function() {
             .writeInt(data.x)
             .writeByte(data.y)
             .writeInt(data.z)
-            .writeArray(blockType)
+            .writeVarint(blockType)
             .writeByte(data.blockMetadata);
         return packet;
     };
 
-    builders[packets.BlockAction] = function(data) {
+    builders[packets.BlockAction] = function (data) {
         var blockType = varint.encode(data.blockType);
         var packet = new Packet(13 + blockType.length);
 
@@ -449,16 +453,16 @@ var PacketWriter = function() {
             .writeInt(data.Z)
             .writeByte(data.byte1)
             .writeByte(data.byte2)
-            .writeArray(blockType);
+            .writeVarint(blockType);
         return packet;
     };
 
-    builders[packets.BlockBreakAnimation] = function(data) {
+    builders[packets.BlockBreakAnimation] = function (data) {
         var entityId = varint.encode(data.entityId);
         var packet = new Packet(14 + entityId);
 
         packet.writeByte(packets.BlockBreakAnimation)
-            .writeArray(entityId)
+            .writeVarint(entityId)
             .writeInt(data.x)
             .writeInt(data.y)
             .writeInt(data.z)
@@ -466,7 +470,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.MapChunkBulk] = function(data) {
+    builders[packets.MapChunkBulk] = function (data) {
         var packet = new Packet(8 + data.chunkData.length + (12 * data.metadata.length));
 
         packet.writeByte(packets.MapChunkBulk)
@@ -485,7 +489,7 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.Explosion] = function(data) {
+    builders[packets.Explosion] = function (data) {
         var packet = new Packet(33);
 
         packet.writeByte(packets.Explosion)
@@ -558,7 +562,7 @@ var PacketWriter = function() {
         var packet = new Packet(14 + entityId.length);
 
         packet.writeByte(packets.SpawnGlobalEntity)
-            .writeArray(entityId)
+            .writeVarint(entityId)
             .writeByte(data.type)
             .writeInt(data.x)
             .writeInt(data.y)
@@ -649,7 +653,7 @@ var PacketWriter = function() {
         var packet = new Packet(3 + itemDamage.length + data.data.length);
 
         packet.writeByte(packets.Maps)
-            .writeArray(itemDamage)
+            .writeVarint(itemDamage)
             .writeShort(data.data.length)
             .writeArray(data.data);
 
@@ -676,7 +680,7 @@ var PacketWriter = function() {
         var packet = new Packet(1 + count.length + data.statistics.length * 8);
 
         packet.writeByte(packets.Statistics)
-            .writeArray(count);
+            .writeVarint(count);
 
             //TODO: handle converting this to varint
         for (var i = 0; i < data.statistics.length; i++) {
@@ -713,7 +717,7 @@ var PacketWriter = function() {
 
         //TODO: handle sending multiple tab completion responses
         packet.writeByte(packets.TabComplete)
-            .writeArray(count)
+            .writeVarint(count)
             .writeString(data.matches[0]);
 
         return packet;
@@ -772,7 +776,7 @@ var PacketWriter = function() {
     };
 
     builders[packets.Disconnect] = function (data) {
-        var packet = new Packet(strLen(data.reason));
+        var packet = new Packet(1+ strLen(data.reason));
 
         packet.writeByte(packets.Disconnect)
             .writeString(data.reason);
@@ -780,26 +784,56 @@ var PacketWriter = function() {
         return packet;
     };
 
-    // builders[0xFD] = function(data) {
-    //     var packet = new Packet(5 + strLen(data.serverId) + data.publicKey.length + data.token.length);
+    statusBuilders[statusPackets.Response] = function (data) {
+        var packet = new Packet(1 + strLen(data.response));
 
-    //     packet.writeByte(0xFD)
-    //         .writeString(data.serverId)
-    //         .writeShort(data.publicKey.length)
-    //         .writeArray(data.publicKey)
-    //         .writeShort(data.token.length)
-    //         .writeArray(data.token);
-    //     return packet;
-    // };
+        packet.writeVarint(statusPackets.Response)
+            .writeString(data.response);
 
-    // builders[0xFF] = function(data) {
-    //     var packet = new Packet(1 + strLen(data.serverStatus));
+        return packet;
+    };
 
-    //     packet.writeByte(0xFF)
-    //         .writeString(data.serverStatus);
+    statusBuilders[statusPackets.Ping] = function (data) {
+        var packet = new Packet(9);
 
-    //     return packet;
-    // };
+        packet.writeVarint(statusPackets.Ping)
+            .writeArray(data.time);
+
+        return packet;
+    };
+
+    loginBuilders[loginPackets.Disconnect] = function (data) {
+        var packet = new Packet(1 + strLen(data.message));
+
+        packet.writeVarint(loginPackets.Disconnect)
+            .writeString(data.message);
+
+        return packet;
+    };
+
+    loginBuilders[loginPackets.EncryptionRequest] = function (data) {
+        var packet = new Packet(5 + strLen(data.serverId) + data.publicKey.length + data.token.length);
+
+        packet.writeVarint(loginPackets.EncryptionRequest)
+            .writeString(data.serverId)
+            .writeShort(data.publicKey.length)
+            .writeArray(data.publicKey)
+            .writeShort(data.token.length)
+            .writeArray(data.token);
+        return packet;
+    };
+
+    loginBuilders[loginPackets.LoginSuccess] = function (data) {
+        var packet = new Packet(1 + strLen(data.uuid) + strLen(data.username));
+
+        console.log(data);
+
+        packet.writeVarint(loginPackets.LoginSuccess)
+            .writeString(data.uuid)
+            .writeString(data.username);
+
+        return packet;
+    };
 
     self.build = function(data) {
         if (!builders.hasOwnProperty(data.ptype)) {
@@ -809,6 +843,26 @@ var PacketWriter = function() {
         }
 
         return builders[data.ptype](data).result();
+    };
+
+    self.buildStatus = function(data) {
+        if (!statusBuilders.hasOwnProperty(data.ptype)) {
+            console.log('Unknown status packet to build: ' + data.ptype);
+            console.log(data);
+            return new Buffer(0);
+        }
+
+        return statusBuilders[data.ptype](data).result();
+    };
+
+    self.buildLogin = function(data) {
+        if (!loginBuilders.hasOwnProperty(data.ptype)) {
+            console.log('Unknown login packet to build: ' + data.ptype);
+            console.log(data);
+            return new Buffer(0);
+        }
+
+        return loginBuilders[data.ptype](data).result();
     };
 };
 

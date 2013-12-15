@@ -1,4 +1,5 @@
 var crypto = require('crypto');
+var packets = require('../network/packetList').serverPackets
 
 var KeepAliveHandler = function(world) {
 
@@ -8,7 +9,7 @@ var KeepAliveHandler = function(world) {
         }
 
         world.lastKeepAlive = crypto.randomBytes(4).readInt32BE(0);
-        var ka = { ptype: 0x00, keepAliveId: world.lastKeepAlive };
+        var ka = { ptype: packets.KeepAlive, keepAliveId: world.lastKeepAlive };
 
         world.playerEntities.getAll().forEach(function (player, idx) {
             player.pingTimer = process.hrtime();
@@ -31,7 +32,7 @@ var KeepAliveHandler = function(world) {
 
 	    if (world.lastKeepAlive != data.keepAliveId) {
 	        console.log('Id: %d - Player sent bad KeepAlive: should have been: %d - was: %d'.red, player.id, player.lastKeepAlive, data.keepAliveId);
-	        var kick = world.packetWriter.build({ ptype: 0xFF, serverStatus: 'Bad response to Keep Alive!' });
+	        var kick = world.packetWriter.build({ ptype: packets.Disconnect, serverStatus: 'Bad response to Keep Alive!' });
 	        world.packetSender.sendPacket(player, kick);
 	        world.packetSender.closeConnection(player);
 	    }

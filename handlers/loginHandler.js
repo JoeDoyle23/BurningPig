@@ -1,25 +1,18 @@
 var crypto = require('crypto');
+var packets = require('../network/packetList').serverPackets
+var loginPackets = require('../network/packetList').serverLoginPackets
 
-var LoginHandler = function(world) {
+var LoginHandler = function (world) {
 
-    world.on("handshake", function(data, player) {
-        //console.log('Got handshake from user: ' + data.username);
+    world.on('login_start', function (data, player) {
+        console.log('Got login request for player: ' + data.name);
 
-        if(!protocolCheck(data.protocol, player, world)) {
-          return;
-        }
-
-        if (!serverFullCheck(player, world)) {
-          return;
-        }
-        
+        player.handshakeData = data;
         player.token = crypto.randomBytes(4);
         player.id = crypto.randomBytes(4).readUInt32BE(0);
 
-        player.handshakeData = data;
-
-        var encryptionStart = world.packetWriter.build({
-            ptype: 0xFD, 
+        var encryptionStart = world.packetWriter.buildLogin({
+            ptype: loginPackets.EncryptionRequest, 
             serverId: '-',
             publicKey: world.encryption.ASN,
             token: player.token
@@ -28,15 +21,50 @@ var LoginHandler = function(world) {
         world.packetSender.sendPacket(player, encryptionStart);
     });
 
-    world.on("client_statuses", function(data, player) {
-        if(data.payload !== 0) {
-            console.log('Hmm, the player send data in the 0xCD other than 0.'.red);
+    world.on("encryption_response", function (data, player) {
+        var token = world.encryption.decryptSharedSecret(data.token.toString('hex'));
+        var secret = world.encryption.decryptSharedSecret(data.sharedSecret.toString('hex'));
+
+        if(player.token.toString('hex') !== token.toString('hex')) {
+            var serverStatus = "Encryption setup failed!";
+            var packet = world.packetWriter.buildLogin({ ptype: loginPackets.Disconect, reason: serverStatus });
+
+            world.packetSender.sendPacket(player, packet);
+            world.packetSender.closeConnection(player);
+            return;
         }
 
-        var handshakeData = player.handshakeData;
+
+        world.encryption.validatePlayer(player.handshakeData.name, new Buffer(secret, 'binary'), function(result) {
+            if(result==='YES') {
+                console.log('Validation Response = YES');
+                var encryptionAccepted = world.packetWriter.buildLogin({
+                    ptype: loginPackets.LoginSuccess,
+                    uuid: '110ec58a-a0f2-4ac4-8393-c866d813b8d1',
+                    username: player.handshakeData.name
+                });
+                
+                world.packetSender.sendPacket(player, encryptionAccepted);
+
+                player.network.enableEncryption(secret);
+                player.decryptor.enableEncryption(secret);
+
+                //world.emit('join_game', {}, player);
+
+            } else {
+                var serverStatus = "Failed to verify username!";
+                var packet = world.packetWriter.buildLogin({ ptype: loginPackets.Disconnect, reason: serverStatus });
+
+                world.packetSender.sendPacket(player, packet);
+                world.packetSender.closeConnection(player);
+            }
+        });
+    });
+
+    world.on("join_game", function (data, player) {
+        player.name = player.handshakeData.name;
         delete player.handshakeData;
 
-        player.name = handshakeData.username;
         player.entityId = world.nextEntityId++;
         
         console.log('New Player Id: %d EntityId: %d'.yellow, player.id, player.entityId);
@@ -44,7 +72,7 @@ var LoginHandler = function(world) {
         console.log('World Status: Players: %d'.yellow, world.playerEntities.count());
 
         var packet = world.packetWriter.build({
-            ptype: 0x01, 
+            ptype: packets.JoinGame, 
             entityId: player.entityId,
             gameMode: world.settings.gameMode,
             dimension: world.settings.dimension,
@@ -56,9 +84,18 @@ var LoginHandler = function(world) {
         var playerPosLook = player.getPositionLook();
         var playerAbsolutePosition = player.getAbsolutePosition();
         
+        var spawnPosition = world.packetWriter.build({
+            ptype: packets.SpawnPosition,
+            x: playerAbsolutePosition.x,
+            y: playerAbsolutePosition.y,
+            z: playerAbsolutePosition.z,
+        });
+        player.network.write(spawnPosition);
+
         var namedEntity = world.packetWriter.build({
-            ptype: 0x14, 
+            ptype: packets.SpawnPlayer, 
             entityId: player.entityId,
+            playerUUID: '',
             playerName: player.name,
             x: playerAbsolutePosition.x,
             y: playerAbsolutePosition.y,
@@ -66,7 +103,7 @@ var LoginHandler = function(world) {
             yaw: playerAbsolutePosition.yaw,
             pitch: playerAbsolutePosition.pitch,
             currentItem: 0,
-			metadata: []
+            metadata: []
         });
 
         world.packetSender.sendToOtherPlayers(namedEntity, player);
@@ -79,77 +116,27 @@ var LoginHandler = function(world) {
             using: ["Server", player.name + ' (' + player.id + ') has joined the world!']
         };
 
-        var welcomeChat = world.packetWriter.build({ ptype: 0x03, message: JSON.stringify(message)});
+        var welcomeChat = world.packetWriter.build({ ptype: packets.ChatMessage, message: JSON.stringify(message)});
         world.packetSender.sendToAllPlayers(welcomeChat);
 
-        playerPosLook.ptype = 0x0D;
-        var pos = world.packetWriter.build(playerPosLook);
+        //playerPosLook.ptype = packets.PlayerPositionAndLook;
+        //var pos = world.packetWriter.build(playerPosLook);
 
         world.terrain.getMapPacket(function(mapdata) {
-            mapdata.ptype = 0x38;
+            mapdata.ptype = packets.MapChunkBulk;
             var map = world.packetWriter.build(mapdata);
             world.packetSender.sendPacket(player, map);
-            world.packetSender.sendPacket(player, pos);
+            //world.packetSender.sendPacket(player, pos);
         });
     });
 
-    world.on("encryption_response", function(data, player) {
-        //console.log('Got encryption response');
+    world.on("client_settings", function (data, player) {
 
-        var token = world.encryption.decryptSharedSecret(data.token.toString('hex'));
-        var secret = world.encryption.decryptSharedSecret(data.sharedSecret.toString('hex'));
+    });
 
-        if(player.token.toString('hex') !== token.toString('hex')) {
-            var serverStatus = "Encryption setup failed!";
-            var packet = world.packetWriter.build({ ptype: 0xFF, serverStatus: serverStatus });
+    world.on("client_status", function (data, player) {
 
-            world.packetSender.sendPacket(player, packet);
-            world.packetSender.closeConnection(player);
-            return;
-        }
-
-        world.encryption.validatePlayer(player.handshakeData.username, new Buffer(secret, 'binary'), function(result) {
-            if(result==='YES') {
-                var encryptionAccepted = world.packetWriter.build({ ptype: 0xFC});
-                world.packetSender.sendPacket(player, encryptionAccepted);
-
-                player.network.enableEncryption(secret);
-                player.decryptor.enableEncryption(secret);                
-            } else {
-                var serverStatus = "Failed to verify username!";
-                var packet = world.packetWriter.build({ ptype: 0xFF, serverStatus: serverStatus });
-
-                world.packetSender.sendPacket(player, packet);
-                world.packetSender.closeConnection(player);
-            }
-        });
     });
 };
-
-function protocolCheck(protocol, player, world) {
-    if (protocol !== 78) {
-        console.log("The client sent a protocol id we don't support: %d".red, protocol);
-        var kick = world.packetWriter.build({ ptype: 0xFF, serverStatus: 'Sorry, your version of Minecraft needs to be 1.6.4 to use this server!' });
-        world.packetSender.sendPacker(player, kick);
-        world.packetSender.closeConnection(player);
-        return false;
-    }
-
-    return true;
-};
-
-
-function serverFullCheck(player, world) {
-    if (world.playerEntities.count() === world.settings.maxPlayers) {
-        console.log("The server is full!".red);
-        var kick = world.packetWriter.build({ ptype: 0xFF, serverStatus: 'Sorry, the server is full.' });
-        world.packetSender.sendPacket(player, kick);
-        world.packetSender.closeConnection(player);
-        return false;
-    }
-
-    return true;
-};
-
 
 module.exports = LoginHandler;

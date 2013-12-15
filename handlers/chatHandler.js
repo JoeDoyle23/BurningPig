@@ -1,3 +1,5 @@
+var packets = require('../network/packetList').serverPackets;
+
 var ChatHandler = function(world) {
 
     world.on("chat_message", function(data, player) {
@@ -11,7 +13,7 @@ var ChatHandler = function(world) {
 
         console.log('Chat Message:');
         console.log(JSON.stringify(m));
-        var chat = world.packetWriter.build({ ptype: 0x03, message: JSON.stringify(m) });
+        var chat = world.packetWriter.build({ ptype: packets.ChatMessage, message: JSON.stringify(m) });
 
         if(data.message === '/players') {
             console.log(world.playerEntities.getAll());

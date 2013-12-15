@@ -1,11 +1,16 @@
-﻿var BinaryReader = require('../util/binaryReader'),
+﻿var varint = require('varint'),
+    BinaryReader = require('../util/binaryReader'),
     packets = require('./packetList').clientPackets,
+    statusPackets = require('./packetList').clientStatusPackets,
+    loginPackets = require('./packetList').clientLoginPackets,
     util = require('util');
 
 var PacketReader = function () {
     var self = this;
 
-    var parsers = [];
+    var parsers = {};
+    var statusParsers = {};
+    var loginParsers = {};
 
     parsers[packets.KeepAlive] = function (binaryReader) {
         var data = {
@@ -284,56 +289,96 @@ var PacketReader = function () {
         return { type: 'plugin_message', data: data };
     };
 
-    // parsers[0x02] = function (binaryReader) {
-    //     var data = {
-    //         type: binaryReader.readByte(),
-    //         protocol: binaryReader.readByte(),
-    //         username: binaryReader.readString(),
-    //         server: binaryReader.readString(),
-    //         serverPort: binaryReader.readInt()
-    //     };
+    statusParsers[statusPackets.Request] = function (binaryReader) {
+        var data = {
+            type: binaryReader.readVarint(),
+        }
 
-    //     return { type: 'handshake', data: data };
-    // };
+        return { type: 'status_request', data: data };
+    };
 
-    // parsers[0xFC] = function (binaryReader) {
-    //     var data = {
-    //         type: binaryReader.readByte(),
-    //         sharedSecretLength: binaryReader.readShort(),
-    //     };
+    statusParsers[statusPackets.Ping] = function (binaryReader) {
+        var data = {
+            type: binaryReader.readByte(),
+            time: binaryReader.readArray(8),
+        }
 
-    //     data.sharedSecret = binaryReader.readArray(data.sharedSecretLength);
-    //     data.tokenLength = binaryReader.readShort();
-    //     data.token = binaryReader.readArray(data.tokenLength);
+        return { type: 'status_ping', data: data };
+    };
 
-    //     return { type: 'encryption_response', data: data };
-    // };
+    loginParsers[loginPackets.LoginStart] = function (binaryReader) {
+        var data = {
+            type: binaryReader.readVarint(),
+            name: binaryReader.readString(),
+        }
 
-    // parsers[0xFE] = function (binaryReader) {
-    //     var data = { 
-    //         type: binaryReader.readByte(),
-    //         value: binaryReader.readByte()
-    //     };
+        return { type: 'login_start', data: data };
+    };
 
-    //     return { type: 'server_list_ping', data: data };
-    // };
+    loginParsers[loginPackets.EncryptionResponse] = function (binaryReader) {
+        var data = {
+            type: binaryReader.readVarint(),
+            sharedSecretLength: binaryReader.readShort(),
+        };
 
-    // parsers[0xFF] = function (binaryReader) {
-    //     var data = {
-    //         type: binaryReader.readByte(),
-    //         reason: binaryReader.readString(),
-    //     };
+        data.sharedSecret = binaryReader.readArray(data.sharedSecretLength);
+        data.tokenLength = binaryReader.readShort();
+        data.token = binaryReader.readArray(data.tokenLength);
 
-    //     return { type : 'disconnect', data: data };
-    // };
+        return { type: 'encryption_response', data: data };
+    };
 
-    self.parse = function (inputBuffer) {
-        var type = inputBuffer[0];
+    self.parseHandsake = function (binaryReader) {
+        var data = {
+            type: binaryReader.readVarint(),
+            protocolVersion: binaryReader.readVarint(),
+            serverAddress: binaryReader.readString(),
+            serverPort: binaryReader.readUShort(),
+            nextState: binaryReader.readVarint()
+        };
+
+        return { type : 'handshake', data: data };
+    };
+
+    self.parse = function (inputBuffer, packetStream) {
+        var packetLength = varint.decode(inputBuffer.slice(0,8));
+        var lenStart = varint.decode.bytesRead;
+        var type = varint.decode(inputBuffer.slice(lenStart,lenStart+8));
+
+        var binaryReader = new BinaryReader(inputBuffer, lenStart);
+
+        if(packetStream.state == 0 && type == 0) {
+            var packet = self.parseHandsake(binaryReader, packetStream);
+            self.bufferUsed = binaryReader.getPosition();
+            packetStream.state = packet.data.nextState;
+            console.log('Next state:' + packet.data.nextState);
+            return packet;
+        }
+
+        if(packetStream.state == 1) {
+            if (!statusParsers.hasOwnProperty(type)) {
+                return { data: {}, error: util.format('unknown status type: %s'.red, type.toString(16)) };
+            }
+    
+            var packet = statusParsers[type](binaryReader);
+            self.bufferUsed = binaryReader.getPosition();
+            return packet;
+        }
+
+        if(packetStream.state == 2) {
+            if (!loginParsers.hasOwnProperty(type)) {
+                return { data: {}, error: util.format('unknown login type: %s'.red, type.toString(16)) };
+            }
+    
+            var packet = loginParsers[type](binaryReader);
+            self.bufferUsed = binaryReader.getPosition();
+            return packet;
+        }
+
         if (!parsers.hasOwnProperty(type)) {
             return { data: {}, error: util.format('unknown type: %s'.red, type.toString(16)) };
         }
 
-        var binaryReader = new BinaryReader(inputBuffer);
         var packet = parsers[type](binaryReader);
         self.bufferUsed = binaryReader.getPosition();
         return packet;

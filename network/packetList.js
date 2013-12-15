@@ -91,5 +91,22 @@ module.exports = {
         ClientSettings: 0x15,
         ClientStatus: 0x16,
         PluginMessage: 0x17,
-    }
+    },
+    serverStatusPackets: {
+        Response: 0x00,
+        Ping: 0x01,
+    },
+    clientStatusPackets: {
+        Request: 0x00,
+        Ping: 0x01,
+    },
+    serverLoginPackets: {
+        Disconnect: 0x00,
+        EncryptionRequest: 0x01,
+        LoginSuccess: 0x02,
+    },
+    clientLoginPackets: {
+        LoginStart: 0x00,
+        EncryptionResponse: 0x01
+    },
 };

@@ -10,6 +10,7 @@ function PacketStream(world, player) {
     
     this.player = player;
     this.world = world;
+    this.state = 0;
     this.packetReader = new PacketReader();
     this.partialData = new Buffer(0);
 };
@@ -24,13 +25,14 @@ PacketStream.prototype._write = function(data, encoding, cb) {
 
     do {
         try {
-            var packet = self.packetReader.parse(allData);
+            var packet = self.packetReader.parse(allData, this);
 
             if (packet.error) {
                 //console.log(packet.error);
                 //throw { message: packet.err };
             }
 
+            console.log('emitting: ' + packet.type);
             this.world.emit(packet.type, packet.data, self.player);
 
             if (allData.length === self.packetReader.bufferUsed) {

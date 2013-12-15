@@ -61,6 +61,13 @@ var BinaryReader = function (buffer, start) {
         return value;
     };
 
+    self.readUShort = function () {
+        needs(2);
+        var value = buffer.readUInt16BE(cursor.pos);
+        cursor.pos += 2;
+        return value;
+    };
+
     self.readInt = function () {
         needs(4);
         var value = buffer.readInt32BE(cursor.pos);
@@ -79,6 +86,13 @@ var BinaryReader = function (buffer, start) {
         needs(8);
         var value = buffer.readDoubleBE(cursor.pos);
         cursor.pos += 8;
+        return value;
+    };
+
+    self.readVarint = function () {
+        needs(1);
+        var value = varint.decode(buffer.slice(cursor.pos, cursor.pos+8));
+        cursor.pos += varint.decode.bytesRead;
         return value;
     };
 
