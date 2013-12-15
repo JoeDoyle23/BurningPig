@@ -1,11 +1,15 @@
-var PlayerLookMovementHandler = function(world) {
+var packets = require('../network/packetList').serverPackets
 
-    world.on("player_base", function(data, player) {
+var PlayerLookMovementHandler = function (world) {
+
+    world.on("player_base", function (data, player) {
         player.updatePosition(data);
     });
 
     world.on("player_position", function(data, player) {
         var goodUpdate = player.updatePosition(data);
+        
+        return;
         if (goodUpdate) {
             var position = player.getAbsoluteDelta();
             var update = world.packetWriter.build({
@@ -20,7 +24,7 @@ var PlayerLookMovementHandler = function(world) {
         }
     });
 
-    world.on("player_look", function(data, player) {
+    world.on("player_look", function (data, player) {
         var goodUpdate = player.updatePosition(data);
         if (goodUpdate) {
             var position = player.getAbsoluteDelta();
@@ -41,13 +45,16 @@ var PlayerLookMovementHandler = function(world) {
         }
     });
 
-    world.on("player_position_look", function(data, player) {
+    world.on("player_position_look", function (data, player) {
         var goodUpdate = player.updatePosition(data);
+
+        return;
 
         if (goodUpdate) {
             var position = player.getAbsoluteDelta();
+            console.log(position);
             var update = world.packetWriter.build({
-                ptype: 0x21, 
+                ptype: packets.EntityLookAndRelativeMove, 
                 entityId: player.entityId,
                 dX: position.x,
                 dY: position.y,

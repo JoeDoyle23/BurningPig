@@ -12,8 +12,8 @@ var LoginHandler = function (world) {
         player.id = crypto.randomBytes(4).readUInt32BE(0);
 
         var encryptionStart = world.packetWriter.buildLogin({
-            ptype: loginPackets.EncryptionRequest, 
-            serverId: '-',
+            ptype: loginPackets.EncryptionRequest,
+            serverId: world.serverId,
             publicKey: world.encryption.ASN,
             token: player.token
         });
@@ -25,35 +25,43 @@ var LoginHandler = function (world) {
         var token = world.encryption.decryptSharedSecret(data.token.toString('hex'));
         var secret = world.encryption.decryptSharedSecret(data.sharedSecret.toString('hex'));
 
-        if(player.token.toString('hex') !== token.toString('hex')) {
+        if (player.token.toString('hex') !== token.toString('hex')) {
             var serverStatus = "Encryption setup failed!";
-            var packet = world.packetWriter.buildLogin({ ptype: loginPackets.Disconect, reason: serverStatus });
+            var packet = world.packetWriter.buildLogin({
+                ptype: loginPackets.Disconect,
+                reason: serverStatus
+            });
 
             world.packetSender.sendPacket(player, packet);
             world.packetSender.closeConnection(player);
             return;
         }
 
-
         world.encryption.validatePlayer(player.handshakeData.name, new Buffer(secret, 'binary'), function(result) {
-            if(result==='YES') {
-                console.log('Validation Response = YES');
-                var encryptionAccepted = world.packetWriter.buildLogin({
-                    ptype: loginPackets.LoginSuccess,
-                    uuid: '110ec58a-a0f2-4ac4-8393-c866d813b8d1',
-                    username: player.handshakeData.name
-                });
-                
-                world.packetSender.sendPacket(player, encryptionAccepted);
+            if (result.status === 'success') {
+                console.log('Validation Response success');
+                player.uuid = result.uuid;
 
                 player.network.enableEncryption(secret);
                 player.decryptor.enableEncryption(secret);
 
-                //world.emit('join_game', {}, player);
+                var encryptionAccepted = world.packetWriter.buildLogin({
+                    ptype: loginPackets.LoginSuccess,
+                    uuid: player.uuid,
+                    username: player.handshakeData.name
+                });
+
+                world.packetSender.sendPacket(player, encryptionAccepted);
+
+                player.packetStream.state = 3;
+                world.emit('join_game', {}, player);
 
             } else {
                 var serverStatus = "Failed to verify username!";
-                var packet = world.packetWriter.buildLogin({ ptype: loginPackets.Disconnect, reason: serverStatus });
+                var packet = world.packetWriter.buildLogin({
+                    ptype: loginPackets.Disconnect,
+                    reason: serverStatus
+                });
 
                 world.packetSender.sendPacket(player, packet);
                 world.packetSender.closeConnection(player);
@@ -66,13 +74,22 @@ var LoginHandler = function (world) {
         delete player.handshakeData;
 
         player.entityId = world.nextEntityId++;
-        
+        var packet = world.packetWriter.build({
+            ptype: packets.JoinGame,
+            entityId: player.entityId,
+            gameMode: world.settings.gameMode,
+            dimension: world.settings.dimension,
+            difficulty: world.settings.difficulty,
+            maxPlayers: world.settings.maxPlayers
+        });
+        player.network.write(packet);
+
         console.log('New Player Id: %d EntityId: %d'.yellow, player.id, player.entityId);
         world.playerEntities.add(player);
         console.log('World Status: Players: %d'.yellow, world.playerEntities.count());
 
         var packet = world.packetWriter.build({
-            ptype: packets.JoinGame, 
+            ptype: packets.JoinGame,
             entityId: player.entityId,
             gameMode: world.settings.gameMode,
             dimension: world.settings.dimension,
@@ -83,7 +100,7 @@ var LoginHandler = function (world) {
 
         var playerPosLook = player.getPositionLook();
         var playerAbsolutePosition = player.getAbsolutePosition();
-        
+
         var spawnPosition = world.packetWriter.build({
             ptype: packets.SpawnPosition,
             x: playerAbsolutePosition.x,
@@ -93,7 +110,7 @@ var LoginHandler = function (world) {
         player.network.write(spawnPosition);
 
         var namedEntity = world.packetWriter.build({
-            ptype: packets.SpawnPlayer, 
+            ptype: packets.SpawnPlayer,
             entityId: player.entityId,
             playerUUID: '',
             playerName: player.name,
@@ -112,15 +129,17 @@ var LoginHandler = function (world) {
         console.log('%s (%d) has joined the world!', player.name, player.id);
 
         var message = {
-            translate:"chat.type.announcement",
-            using: ["Server", player.name + ' (' + player.id + ') has joined the world!']
+            text: player.name + ' (' + player.id + ') has joined the world!'
         };
 
-        var welcomeChat = world.packetWriter.build({ ptype: packets.ChatMessage, message: JSON.stringify(message)});
+        var welcomeChat = world.packetWriter.build({
+            ptype: packets.ChatMessage,
+            message: JSON.stringify(message)
+        });
         world.packetSender.sendToAllPlayers(welcomeChat);
 
-        //playerPosLook.ptype = packets.PlayerPositionAndLook;
-        //var pos = world.packetWriter.build(playerPosLook);
+        playerPosLook.ptype = packets.PlayerPositionAndLook;
+        var pos = world.packetWriter.build(playerPosLook);
 
         world.terrain.getMapPacket(function(mapdata) {
             mapdata.ptype = packets.MapChunkBulk;
@@ -131,11 +150,11 @@ var LoginHandler = function (world) {
     });
 
     world.on("client_settings", function (data, player) {
-
+        console.log(data);
     });
 
     world.on("client_status", function (data, player) {
-
+        console.log('client_status');
     });
 };
 

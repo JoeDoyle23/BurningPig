@@ -1,5 +1,6 @@
 ﻿var util = require('util'),
     EventEmitter = require('events').EventEmitter,
+    randomstring = require("randomstring"),
     Terrain = require('./terrain/terrain'),
     PacketRouter = require('./packetRouter'),
     PacketWriter = require('./network/packetWriter'),
@@ -15,7 +16,8 @@ function World() {
     this.terrain = new Terrain();
     this.packetRouter = new PacketRouter(this);
     this.encryption = new Encryption();
-    this.encryption.init(new Buffer('BurningPig', 'ascii'));
+    this.serverId = randomstring.generate(15);
+    this.encryption.init(new Buffer(this.serverId, 'ascii'));
 
     this.settings = require('./settings.json');
 

@@ -6,7 +6,8 @@ var Packet = function(size) {
   var packetLength = varint.encode(size);
   this.buffer = new Buffer(size + packetLength.length);
   this.cursor = 0;
-  this.writeArray(new Buffer(packetLength));
+  new Buffer(packetLength).copy(this.buffer, this.cursor);
+  this.cursor += packetLength.length;
 };
 
 Packet.prototype.result = function() {

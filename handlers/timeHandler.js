@@ -21,17 +21,18 @@ var TimeHandler = function(world) {
 
         var packetLength = 0;
         
-        world.playerEntities.getAll().forEach(function (player, idx) {
-            var cPing = player.getPing();
+        // world.playerEntities.getAll().forEach(function (player, idx) {
+        //     var cPing = player.getPing();
 
-            var playerlist = world.packetWriter.build({
-                ptype: packets.PlayerListItem,
-                playerName: player.name,
-                online: true,
-                ping:  cPing > 0x7FFF ? 0x7FFF : cPing
-            });
-            world.packetSender.sendToAllPlayers(playerlist);
-        });
+        //     var playerlist = world.packetWriter.build({
+        //         ptype: packets.PlayerListItem,
+        //         playerName: player.name,
+        //         online: true,
+        //         ping:  cPing > 0x7FFF ? 0x7FFF : cPing
+        //     });
+        //     console.log(playerlist);
+        //     world.packetSender.sendToAllPlayers(playerlist);
+        // });
     });
 };
 

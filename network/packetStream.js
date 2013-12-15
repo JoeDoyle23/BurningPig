@@ -2,7 +2,7 @@
     Writable = require('stream').Writable,
     PacketReader = require('./packetReader');
 
-function PacketStream(world, player) {
+function PacketStream (world, player) {
     if (!(this instanceof PacketStream))
         return new PacketStream(player);
 
@@ -18,7 +18,7 @@ function PacketStream(world, player) {
 PacketStream.prototype = Object.create(
   Writable.prototype, { constructor: { value: PacketStream }});
 
-PacketStream.prototype._write = function(data, encoding, cb) {
+PacketStream.prototype._write = function (data, encoding, cb) {
     var self = this;
 
     var allData = Buffer.concat([self.partialData, data], self.partialData.length + data.length);

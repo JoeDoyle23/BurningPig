@@ -826,8 +826,6 @@ var PacketWriter = function() {
     loginBuilders[loginPackets.LoginSuccess] = function (data) {
         var packet = new Packet(1 + strLen(data.uuid) + strLen(data.username));
 
-        console.log(data);
-
         packet.writeVarint(loginPackets.LoginSuccess)
             .writeString(data.uuid)
             .writeString(data.username);
@@ -836,6 +834,9 @@ var PacketWriter = function() {
     };
 
     self.build = function(data) {
+        if(data.ptype!==3)
+            console.log("Building game packet: " + data.ptype.toString(16));
+
         if (!builders.hasOwnProperty(data.ptype)) {
             console.log('Unknown packet to build: ' + data.ptype);
             console.log(data);
@@ -846,6 +847,8 @@ var PacketWriter = function() {
     };
 
     self.buildStatus = function(data) {
+        console.log("Building status packet: " + data.ptype.toString(16));
+
         if (!statusBuilders.hasOwnProperty(data.ptype)) {
             console.log('Unknown status packet to build: ' + data.ptype);
             console.log(data);
@@ -856,6 +859,8 @@ var PacketWriter = function() {
     };
 
     self.buildLogin = function(data) {
+        console.log("Building login packet: " + data.ptype.toString(16));
+
         if (!loginBuilders.hasOwnProperty(data.ptype)) {
             console.log('Unknown login packet to build: ' + data.ptype);
             console.log(data);
