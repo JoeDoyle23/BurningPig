@@ -1,4 +1,5 @@
 var blockDrops = require('../blockMapping');
+var packets = require('../network/packetList').serverPackets
 
 var DiggingHandler = function(world) {
 
@@ -49,7 +50,7 @@ var DiggingHandler = function(world) {
         world.terrain.setBlock(blockPosition, { blockType: 0, metadata: 0, light: 0, skylight: 0x00 });
 
         var dugPacket = world.packetWriter.build({
-            ptype: 0x35, 
+            ptype: packets.BlockChange, 
             x: data.x,
             y: data.y,
             z: data.z,
@@ -58,7 +59,7 @@ var DiggingHandler = function(world) {
         });
 
         var entity = {
-            ptype: 0x17,
+            ptype: packets.SpawnObject,
             entityId: world.nextEntityId++,
             type: 2,
             x: (blockPosition.x + 0.5) * 32,
@@ -73,7 +74,7 @@ var DiggingHandler = function(world) {
         };
         
         var entityMetadata = {
-            ptype: 0x28,
+            ptype: packets.EntityMetadata,
             entityId: entity.entityId,
             metadata: [{
                 index: 10,

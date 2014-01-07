@@ -32,7 +32,7 @@ PacketStream.prototype._write = function (data, encoding, cb) {
                 //throw { message: packet.err };
             }
 
-            console.log('emitting: ' + packet.type);
+            //console.log('emitting: ' + packet.type);
             this.world.emit(packet.type, packet.data, self.player);
 
             if (allData.length === self.packetReader.bufferUsed) {

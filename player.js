@@ -5,12 +5,12 @@ function Player() {
     this.token = 0;
     this.id = 0;
     this.x = 0;
-    this.y = 64.5;
+    this.y = 80.5;
     this.z = 0;
     this.oldx = 0;
-    this.oldy = 64.5;
+    this.oldy = 90.5;
     this.oldz = 0;
-    this.stance = 66.12;
+    this.stance = 83.12;
     this.yaw = 0;
     this.pitch = 0;
     this.onGround = true;
@@ -38,7 +38,6 @@ Player.prototype.getPositionLook = function () {
         x: this.x,
         y: this.y,
         z: this.x,
-        stance: this.stance,
         yaw: this.yaw,
         pitch: this.pitch,
         onGround: this.onGround
@@ -89,7 +88,7 @@ Player.prototype.getAbsoluteDelta = function () {
 
 Player.prototype.updatePosition = function (newPosition) {
     var coordCheck = function (value, newValue) {
-        return Math.abs(value - newValue) <= 100;
+        return Math.abs(value - newValue) <= 4;
     }
 
     if (newPosition.hasOwnProperty('yaw')) {
@@ -124,6 +123,9 @@ Player.prototype.updatePosition = function (newPosition) {
 
     if (newPosition.hasOwnProperty('z')) {
         if (!coordCheck(this.z, newPosition.z)) {
+            console.log('Bad Z position');
+            console.log(this.z);
+            console.log(newPosition.z);
             return false;
         }
 

@@ -35,8 +35,8 @@ Packet.prototype.writeArray = function (data) {
   };
 
 Packet.prototype.writeVarint = function (data) {
-    var value = varint.encode(data);
-    this.writeArray(new Buffer(value));
+    //var value = varint.encode(data);
+    this.writeArray(new Buffer(data));
 	return this;
   };
 

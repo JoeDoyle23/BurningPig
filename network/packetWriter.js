@@ -175,7 +175,7 @@ var PacketWriter = function() {
 
     builders[packets.SpawnObject] = function (data) {
         var entityId = varint.encode(data.entityId);
-        var packet = new Packet(entityId.length + data.objectData > 0 ? 26 : 20);
+        var packet = new Packet(entityId.length + 20);
 
         packet.writeByte(packets.SpawnObject)
             .writeVarint(entityId)
@@ -252,10 +252,12 @@ var PacketWriter = function() {
         return packet;
     };
 
-    builders[packets.DesctroyEntities] = function (data) {
+    builders[packets.DestroyEntities] = function (data) {
         var packet = new Packet(2 + data.entityIds.length * 4);
 
-        packet.writeByte(packets.DesctroyEntities)
+        console.log(data.entityIds.length);
+
+        packet.writeByte(packets.DestroyEntities)
             .writeByte(data.entityIds.length);
 
         for (var i = 0; i < data.entityIds.length; i++) {
@@ -432,7 +434,7 @@ var PacketWriter = function() {
 
     builders[packets.BlockChange] = function (data) {
         var blockType = varint.encode(data.blockType);
-        var packet = new Packet(11 + blockId.length);
+        var packet = new Packet(11 + blockType.length);
 
         packet.writeByte(packets.BlockChange)
             .writeInt(data.x)
@@ -787,7 +789,7 @@ var PacketWriter = function() {
     statusBuilders[statusPackets.Response] = function (data) {
         var packet = new Packet(1 + strLen(data.response));
 
-        packet.writeVarint(statusPackets.Response)
+        packet.writeVarint(varint.encode(statusPackets.Response))
             .writeString(data.response);
 
         return packet;
@@ -796,7 +798,7 @@ var PacketWriter = function() {
     statusBuilders[statusPackets.Ping] = function (data) {
         var packet = new Packet(9);
 
-        packet.writeVarint(statusPackets.Ping)
+        packet.writeVarint(varint.encode(statusPackets.Ping))
             .writeArray(data.time);
 
         return packet;
@@ -805,7 +807,7 @@ var PacketWriter = function() {
     loginBuilders[loginPackets.Disconnect] = function (data) {
         var packet = new Packet(1 + strLen(data.message));
 
-        packet.writeVarint(loginPackets.Disconnect)
+        packet.writeVarint(varint.encode(loginPackets.Disconnect))
             .writeString(data.message);
 
         return packet;
@@ -814,7 +816,7 @@ var PacketWriter = function() {
     loginBuilders[loginPackets.EncryptionRequest] = function (data) {
         var packet = new Packet(5 + strLen(data.serverId) + data.publicKey.length + data.token.length);
 
-        packet.writeVarint(loginPackets.EncryptionRequest)
+        packet.writeVarint(varint.encode(loginPackets.EncryptionRequest))
             .writeString(data.serverId)
             .writeShort(data.publicKey.length)
             .writeArray(data.publicKey)
@@ -826,7 +828,7 @@ var PacketWriter = function() {
     loginBuilders[loginPackets.LoginSuccess] = function (data) {
         var packet = new Packet(1 + strLen(data.uuid) + strLen(data.username));
 
-        packet.writeVarint(loginPackets.LoginSuccess)
+        packet.writeVarint(varint.encode(loginPackets.LoginSuccess))
             .writeString(data.uuid)
             .writeString(data.username);
 

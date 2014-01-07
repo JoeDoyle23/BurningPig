@@ -1,3 +1,5 @@
+var packets = require('../network/packetList').serverPackets
+
 var InventoryHandler = function(world) {
 
     world.on("held_item_change", function(data, player) {
@@ -14,10 +16,9 @@ var InventoryHandler = function(world) {
         }
 
         var entityHolding = world.packetWriter.build({
-            ptype: 0x05,
+            ptype: packets.HeldItemChange,
             entityId: player.entityId,
-            slot: 0,
-            item: item
+            slot: data.slotId,
         });
 
         world.packetSender.sendToOtherPlayers(entityHolding, player);
@@ -32,7 +33,7 @@ var InventoryHandler = function(world) {
         for(var i=0,j=entities.length;i<j;i++) {
             var entity = entities[i];
             var pickupEntity = world.packetWriter.build({
-                ptype: 0x16, 
+                ptype: packets.CollectItem, 
                 collectedId: entity.entityId,
                 collectorId: player.entityId
             });
@@ -43,13 +44,15 @@ var InventoryHandler = function(world) {
             world.packetSender.sendToAllPlayers(pickupEntity);
             world.emit('item_pickup', entity, player);
         }
-        
-        var destroyItem = world.packetWriter.build({
-            ptype: 0x1D,
-            entityIds: destroyClientIds
-        });
 
-        world.packetSender.sendToAllPlayers(destroyItem);
+        if(destroyClientIds.length > 0) {
+            var destroyItem = world.packetWriter.build({
+                ptype: packets.DestroyEntities,
+                entityIds: destroyClientIds
+            });
+
+            world.packetSender.sendToAllPlayers(destroyItem);
+        }
     });
 
     world.on('item_pickup', function(data, player) {
@@ -59,6 +62,7 @@ var InventoryHandler = function(world) {
             player.inventory[player.activeSlot].count += data.count;
         }
 
+        return;
         var inventoryUpdate = world.packetWriter.build({
             ptype: 0x67, 
             windowId: 0,

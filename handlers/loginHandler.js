@@ -45,13 +45,13 @@ var LoginHandler = function (world) {
                 player.network.enableEncryption(secret);
                 player.decryptor.enableEncryption(secret);
 
-                var encryptionAccepted = world.packetWriter.buildLogin({
+                var loginSuccess = world.packetWriter.buildLogin({
                     ptype: loginPackets.LoginSuccess,
                     uuid: player.uuid,
                     username: player.handshakeData.name
                 });
 
-                world.packetSender.sendPacket(player, encryptionAccepted);
+                world.packetSender.sendPacket(player, loginSuccess);
 
                 player.packetStream.state = 3;
                 world.emit('join_game', {}, player);
@@ -74,7 +74,7 @@ var LoginHandler = function (world) {
         delete player.handshakeData;
 
         player.entityId = world.nextEntityId++;
-        var packet = world.packetWriter.build({
+        var joinGame = world.packetWriter.build({
             ptype: packets.JoinGame,
             entityId: player.entityId,
             gameMode: world.settings.gameMode,
@@ -82,25 +82,9 @@ var LoginHandler = function (world) {
             difficulty: world.settings.difficulty,
             maxPlayers: world.settings.maxPlayers
         });
-        player.network.write(packet);
+        player.network.write(joinGame);
 
-        console.log('New Player Id: %d EntityId: %d'.yellow, player.id, player.entityId);
-        world.playerEntities.add(player);
-        console.log('World Status: Players: %d'.yellow, world.playerEntities.count());
-
-        var packet = world.packetWriter.build({
-            ptype: packets.JoinGame,
-            entityId: player.entityId,
-            gameMode: world.settings.gameMode,
-            dimension: world.settings.dimension,
-            difficulty: world.settings.difficulty,
-            maxPlayers: world.settings.maxPlayers
-        });
-        player.network.write(packet);
-
-        var playerPosLook = player.getPositionLook();
         var playerAbsolutePosition = player.getAbsolutePosition();
-
         var spawnPosition = world.packetWriter.build({
             ptype: packets.SpawnPosition,
             x: playerAbsolutePosition.x,
@@ -108,6 +92,20 @@ var LoginHandler = function (world) {
             z: playerAbsolutePosition.z,
         });
         player.network.write(spawnPosition);
+
+        var playerAbilities = world.packetWriter.build({
+            ptype: packets.PlayerAbilities,
+            flags: 0,
+            flyingSpeed: 0.05,
+            walkingSpeed: 0.1
+        });
+        player.network.write(playerAbilities);
+
+        console.log('New Player Id: %d EntityId: %d'.yellow, player.id, player.entityId);
+        world.playerEntities.add(player);
+        console.log('World Status: Players: %d'.yellow, world.playerEntities.count());
+
+        var playerPosLook = player.getPositionLook();
 
         var namedEntity = world.packetWriter.build({
             ptype: packets.SpawnPlayer,
@@ -124,7 +122,7 @@ var LoginHandler = function (world) {
         });
 
         world.packetSender.sendToOtherPlayers(namedEntity, player);
-        world.sendEntitiesToPlayer(player);
+        //world.sendEntitiesToPlayer(player);
 
         console.log('%s (%d) has joined the world!', player.name, player.id);
 
@@ -145,7 +143,7 @@ var LoginHandler = function (world) {
             mapdata.ptype = packets.MapChunkBulk;
             var map = world.packetWriter.build(mapdata);
             world.packetSender.sendPacket(player, map);
-            //world.packetSender.sendPacket(player, pos);
+            world.packetSender.sendPacket(player, pos);
         });
     });
 
