@@ -6,7 +6,7 @@
     PacketWriter = require('./network/packetWriter'),
     PacketSender = require('./network/packetSender'),
     Encryption = require('./network/encryption'),
-    EntityManager = require('./EntityManager');
+    EntityManager = require('./entityManager');
 
 function World() {
     EventEmitter.call(this);
